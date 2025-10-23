@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { BarChart3, Package, DollarSign, TrendingUp, AlertTriangle, Users, LogOut, Menu, X, Plus, Edit, Trash2, Search, Calendar, ShoppingCart, Minus, FileText, CheckCircle, XCircle } from 'lucide-react';
+import { BarChart3, Package, DollarSign, TrendingUp, AlertTriangle, Users, LogOut, Menu, X, Plus, Edit, Trash2, Search, Calendar, ShoppingCart, Minus, FileText, CheckCircle, XCircle, Loader2 } from 'lucide-react';
 import api from './api';
 
 const StatusContext = React.createContext();
@@ -136,9 +136,14 @@ function LoginPage({ onLogin }) {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-indigo-600 text-white py-2 rounded-lg font-semibold hover:bg-indigo-700 transition disabled:opacity-50"
+            className="w-full flex items-center justify-center bg-indigo-600 text-white py-2 rounded-lg font-semibold hover:bg-indigo-700 transition disabled:opacity-50"
           >
-            {loading ? 'Signing in...' : 'Sign In'}
+            {loading ? (
+              <>
+                <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                Signing in...
+              </>
+            ) : 'Sign In'}
           </button>
         </form>
       </div>
@@ -854,6 +859,7 @@ function Expenses() {
   const [showForm, setShowForm] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [form, setForm] = useState({ date: '', category: '', amount: '', notes: '' });
+  const [formErrors, setFormErrors] = useState({});
   const [search, setSearch] = useState('');
   const debouncedSearch = useDebounce(search, 300);
   const expensesPerPage = 10;
@@ -874,13 +880,39 @@ function Expenses() {
     fetchExpenses();
   }, [fetchExpenses]);
 
+  const validateForm = () => {
+    const errors = {};
+    if (!form.date) errors.date = 'Date is required.';
+    else if (new Date(form.date) > new Date()) errors.date = 'Date cannot be in the future.';
+    
+    if (!form.category) errors.category = 'Category is required.';
+
+    if (!form.amount) errors.amount = 'Amount is required.';
+    else if (parseFloat(form.amount) <= 0) errors.amount = 'Amount must be a positive number.';
+
+    setFormErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  const handleFormChange = (e) => {
+    const { name, value } = e.target;
+    setForm(prev => ({ ...prev, [name]: value }));
+    if (formErrors[name]) {
+      setFormErrors(prev => ({ ...prev, [name]: null }));
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!validateForm()) {
+      return;
+    }
     setIsSubmitting(true);
     try {
       await api.createExpense(form);
       setShowForm(false); // Close modal
       setForm({ date: '', category: '', amount: '', notes: '' }); // Reset form
+      setFormErrors({}); // Reset errors
       await fetchExpenses(); // Refresh the list
       showStatus('success', 'Expense added successfully!');
     } catch (error) {
@@ -989,19 +1021,24 @@ function Expenses() {
                 <label className="block text-sm font-medium text-gray-700 mb-1.5">Date</label>
                 <input
                   type="date"
+                  name="date"
                   value={form.date}
-                  onChange={(e) => setForm({...form, date: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors"
+                  onChange={handleFormChange}
+                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors ${formErrors.date ? 'border-red-500' : 'border-gray-300'}`}
                   required
                 />
+                {formErrors.date && (
+                  <p className="mt-1 text-xs text-red-600">{formErrors.date}</p>
+                )}
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
                 <select
+                  name="category"
                   value={form.category}
-                  onChange={(e) => setForm({...form, category: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors"
+                  onChange={handleFormChange}
+                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors ${formErrors.category ? 'border-red-500' : 'border-gray-300'}`}
                   required
                 >
                   <option value="">Select category</option>
@@ -1011,25 +1048,33 @@ function Expenses() {
                   <option value="Salaries">Salaries</option>
                   <option value="Other">Other</option>
                 </select>
+                {formErrors.category && (
+                  <p className="mt-1 text-xs text-red-600">{formErrors.category}</p>
+                )}
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Amount</label>
                 <input
                   type="number"
+                  name="amount"
                   step="0.01"
                   value={form.amount}
-                  onChange={(e) => setForm({...form, amount: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                  onChange={handleFormChange}
+                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 ${formErrors.amount ? 'border-red-500' : 'border-gray-300'}`}
                   required
                 />
+                {formErrors.amount && (
+                  <p className="mt-1 text-xs text-red-600">{formErrors.amount}</p>
+                )}
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
                 <textarea
+                  name="notes"
                   value={form.notes}
-                  onChange={(e) => setForm({...form, notes: e.target.value})}
+                  onChange={handleFormChange}
                   rows={3}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors"
                 />
@@ -1046,9 +1091,13 @@ function Expenses() {
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-semibold transition-colors disabled:opacity-50"
+                  className="w-32 flex justify-center px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-semibold transition-colors disabled:opacity-50"
                 >
-                  {isSubmitting ? 'Adding...' : 'Add Expenses'}
+                  {isSubmitting ? (
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                  ) : (
+                    'Add Expenses'
+                  )}
                 </button>
               </div>
             </form>
@@ -1155,19 +1204,60 @@ function StatusModal({ type, message, onClose }) {
 export default App;
 
 function ItemFormModal({ item, onClose, onSave }) {
+  const [isSaving, setIsSaving] = useState(false);
+  const [formErrors, setFormErrors] = useState({});
   const [form, setForm] = useState({
     item_number: item?.item_number || '',
     name: item?.name || '',
     category: item?.category || '',
     qty_in_stock: item?.qty_in_stock || 0,
     reorder_level: item?.reorder_level || 0,
-    purchase_price: item?.purchase_price || 0,
-    selling_price: item?.selling_price || 0
+    purchase_price: item?.purchase_price || '',
+    selling_price: item?.selling_price || ''
   });
 
-  const handleSubmit = (e) => {
+  const validate = () => {
+    const errors = {};
+    if (!form.item_number.trim()) errors.item_number = 'Item Number is required.';
+    if (!form.name.trim()) errors.name = 'Name is required.';
+    if (!form.selling_price) errors.selling_price = 'Selling Price is required.';
+    else if (parseFloat(form.selling_price) <= 0) errors.selling_price = 'Selling Price must be positive.';
+
+    if (form.purchase_price && parseFloat(form.purchase_price) < 0) {
+      errors.purchase_price = 'Purchase Price cannot be negative.';
+    }
+    if (parseInt(form.qty_in_stock, 10) < 0) {
+      errors.qty_in_stock = 'Quantity cannot be negative.';
+    }
+    if (parseInt(form.reorder_level, 10) < 0) {
+      errors.reorder_level = 'Reorder Level cannot be negative.';
+    }
+
+    setFormErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setForm(prev => ({ ...prev, [name]: value }));
+    if (formErrors[name]) {
+      setFormErrors(prev => ({ ...prev, [name]: null }));
+    }
+  };
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    onSave(item ? item.item_id : null, form);
+    if (!validate()) {
+      return;
+    }
+    setIsSaving(true);
+    try {
+      await onSave(item ? item.item_id : null, { ...form, purchase_price: form.purchase_price || 0 });
+      // The onClose will be called by the parent, unmounting this component.
+    } catch (error) {
+      // If there's an error, the modal stays open, so we stop the saving indicator.
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -1185,22 +1275,30 @@ function ItemFormModal({ item, onClose, onSave }) {
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Item Number</label>
               <input
+                name="item_number"
                 type="text"
                 value={form.item_number}
-                onChange={(e) => setForm({...form, item_number: e.target.value})}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors"
+                onChange={handleChange}
+                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors ${formErrors.item_number ? 'border-red-500' : 'border-gray-300'}`}
                 required
               />
+              {formErrors.item_number && (
+                <p className="mt-1 text-xs text-red-600">{formErrors.item_number}</p>
+              )}
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
               <input
+                name="name"
                 type="text"
                 value={form.name}
-                onChange={(e) => setForm({...form, name: e.target.value})}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors"
+                onChange={handleChange}
+                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors ${formErrors.name ? 'border-red-500' : 'border-gray-300'}`}
                 required
               />
+              {formErrors.name && (
+                <p className="mt-1 text-xs text-red-600">{formErrors.name}</p>
+              )}
             </div>
           </div>
 
@@ -1208,29 +1306,38 @@ function ItemFormModal({ item, onClose, onSave }) {
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
               <input
+                name="category"
                 type="text"
                 value={form.category}
-                onChange={(e) => setForm({...form, category: e.target.value})}
+                onChange={handleChange}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors"
               />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Quantity</label>
               <input
+                name="qty_in_stock"
                 type="number"
                 value={form.qty_in_stock}
-                onChange={(e) => setForm({...form, qty_in_stock: parseInt(e.target.value, 10) || 0})}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors"
+                onChange={handleChange}
+                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors ${formErrors.qty_in_stock ? 'border-red-500' : 'border-gray-300'}`}
               />
+              {formErrors.qty_in_stock && (
+                <p className="mt-1 text-xs text-red-600">{formErrors.qty_in_stock}</p>
+              )}
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Reorder Level</label>
               <input
+                name="reorder_level"
                 type="number"
                 value={form.reorder_level}
-                onChange={(e) => setForm({...form, reorder_level: parseInt(e.target.value, 10) || 0})}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors"
+                onChange={handleChange}
+                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors ${formErrors.reorder_level ? 'border-red-500' : 'border-gray-300'}`}
               />
+              {formErrors.reorder_level && (
+                <p className="mt-1 text-xs text-red-600">{formErrors.reorder_level}</p>
+              )}
             </div>
           </div>
 
@@ -1238,22 +1345,30 @@ function ItemFormModal({ item, onClose, onSave }) {
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Purchase Price</label>
               <input
+                name="purchase_price"
                 type="number"
                 step="0.01"
                 value={form.purchase_price}
-                onChange={(e) => setForm({...form, purchase_price: parseFloat(e.target.value)})}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors"
+                onChange={handleChange}
+                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors ${formErrors.purchase_price ? 'border-red-500' : 'border-gray-300'}`}
               />
+              {formErrors.purchase_price && (
+                <p className="mt-1 text-xs text-red-600">{formErrors.purchase_price}</p>
+              )}
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Selling Price</label>
               <input
+                name="selling_price"
                 type="number"
                 step="0.01"
                 value={form.selling_price}
-                onChange={(e) => setForm({...form, selling_price: parseFloat(e.target.value)})}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors"
+                onChange={handleChange}
+                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors ${formErrors.selling_price ? 'border-red-500' : 'border-gray-300'}`}
               />
+              {formErrors.selling_price && (
+                <p className="mt-1 text-xs text-red-600">{formErrors.selling_price}</p>
+              )}
             </div>
           </div>
 
@@ -1267,9 +1382,14 @@ function ItemFormModal({ item, onClose, onSave }) {
             </button>
             <button
               type="submit"
-              className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-semibold transition-colors"
+              disabled={isSaving}
+              className="w-28 flex justify-center px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-semibold transition-colors disabled:opacity-50"
             >
-              Save Item
+              {isSaving ? (
+                <Loader2 className="h-5 w-5 animate-spin" />
+              ) : (
+                'Save Item'
+              )}
             </button>
           </div>
         </form>
@@ -1587,9 +1707,14 @@ function NewSaleModal({ onClose, onSaleCreated }) {
               <button
                 onClick={handleCreateSale}
                 disabled={loading || cart.length === 0}
-                className="w-full mt-2 px-4 py-3 bg-indigo-600 text-white rounded-lg font-semibold hover:bg-indigo-700 disabled:opacity-50"
+                className="w-full mt-2 flex items-center justify-center px-4 py-3 bg-indigo-600 text-white rounded-lg font-semibold hover:bg-indigo-700 disabled:opacity-50"
               >
-                {loading ? 'Processing...' : 'Complete Sale'}
+                {loading ? (
+                  <>
+                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                    Processing...
+                  </>
+                ) : 'Complete Sale'}
               </button>
             </div>
           </div>
