@@ -13,7 +13,7 @@ const getItems = async (req, res, next) => {
 
 const getItem = async (req, res, next) => {
   try {
-    const item = await itemsService.getItem(req.params.id);
+    const item = await itemsService.getItemById(req.params.id);
     if (!item) {
       return res.status(404).json({ error: { message: 'Item not found', status: 404 } });
     }
@@ -35,7 +35,7 @@ const createItem = async (req, res, next) => {
 
 const updateItem = async (req, res, next) => {
   try {
-    const beforeState = await itemsService.getItem(req.params.id);
+    const beforeState = await itemsService.getItemById(req.params.id);
     const item = await itemsService.updateItem(req.params.id, req.body);
     await auditsService.log(req.user.id, 'UPDATE', 'items', parseInt(req.params.id), beforeState, req.body, req.ip);
     res.json({ success: true, data: item });
@@ -46,7 +46,7 @@ const updateItem = async (req, res, next) => {
 
 const deleteItem = async (req, res, next) => {
   try {
-    const beforeState = await itemsService.getItem(req.params.id);
+    const beforeState = await itemsService.getItemById(req.params.id);
     await itemsService.deleteItem(req.params.id);
     await auditsService.log(req.user.id, 'DELETE', 'items', parseInt(req.params.id), beforeState, null, req.ip);
     res.json({ success: true, message: 'Item deleted' });

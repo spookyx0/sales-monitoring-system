@@ -92,12 +92,11 @@ const api = {
       method: 'DELETE',
       headers: getAuthHeaders(),
     });
-    // Delete might not return a body, check for 200/204 status
     if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Something went wrong');
+      // If there's an error, the backend should send a JSON error message.
+      return handleResponse(response);
     }
-    return { success: true };
+    return { success: true }; // For 200 OK or 204 No Content
   },
 
   // --- Sales ---

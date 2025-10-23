@@ -346,6 +346,8 @@ function Inventory() {
   const [totalItems, setTotalItems] = useState(0);
   const [loading, setLoading] = useState(true);
   const itemsPerPage = 10; // Define how many items per page
+  const [itemToDelete, setItemToDelete] = useState(null);
+
   const showStatus = React.useContext(StatusContext);
 
   const fetchItems = useCallback(async () => {
@@ -359,7 +361,7 @@ function Inventory() {
       showStatus('error', "Failed to fetch items.");
     }
     setLoading(false);
-  }, [search, currentPage]); // fetchItems depends on 'search' and 'currentPage'
+  }, [search, currentPage, showStatus]); // fetchItems depends on 'search' and 'currentPage'
 
   useEffect(() => {
     fetchItems();
@@ -384,15 +386,14 @@ function Inventory() {
   };
 
   const handleDelete = async (itemId) => {
-    if (window.confirm('Are you sure you want to delete this item?')) {
-      try {
-        await api.deleteItem(itemId);
-        fetchItems(); // Refresh list
-        showStatus('success', 'Item deleted successfully.');
-      } catch (error) {
-        console.error("Failed to delete item", error);
-        showStatus('error', `Error: ${error.message}`);
-      }
+    try {
+      await api.deleteItem(itemId);
+      setItemToDelete(null); // Close modal
+      fetchItems(); // Refresh list
+      showStatus('success', 'Item deleted successfully.');
+    } catch (error) {
+      console.error("Failed to delete item", error);
+      showStatus('error', `Error: ${error.message}`);
     }
   };
 
@@ -472,7 +473,7 @@ function Inventory() {
                           <Edit className="w-4 h-4" />
                         </button>
                         <button
-                          onClick={() => handleDelete(item.item_id)}
+                          onClick={() => setItemToDelete(item)}
                           className="p-1 text-red-600 hover:bg-red-50 rounded"
                         >
                           <Trash2 className="w-4 h-4" />
@@ -490,21 +491,46 @@ function Inventory() {
 
         {/* Pagination Controls */}
         {totalPages > 1 && (
-          <div className="p-4 flex justify-between items-center border-t border-gray-200">
+          <div className="p-4 flex justify-center items-center border-t border-gray-200 space-x-2">
             <button
               onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
               disabled={currentPage === 1}
-              className="px-4 py-2 border rounded-lg text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+              className="px-3 py-1 border rounded-lg text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Previous
             </button>
-            <span className="text-sm text-gray-700">
-              Page {currentPage} of {totalPages}
-            </span>
+            
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => {
+              // Logic to show only a few page numbers around the current page
+              const showPage = Math.abs(page - currentPage) < 2 || page === 1 || page === totalPages;
+              const showEllipsis = Math.abs(page - currentPage) === 2 && page > 1 && page < totalPages;
+
+              if (showEllipsis) {
+                return <span key={`ellipsis-${page}`} className="px-3 py-1 text-sm text-gray-500">...</span>;
+              }
+
+              if (showPage) {
+                return (
+                  <button
+                    key={page}
+                    onClick={() => setCurrentPage(page)}
+                    className={`px-3 py-1 border rounded-lg text-sm ${
+                      currentPage === page
+                        ? 'bg-indigo-600 text-white border-indigo-600'
+                        : 'text-gray-700 hover:bg-gray-50'
+                    }`}
+                  >
+                    {page}
+                  </button>
+                );
+              }
+              return null;
+            })}
+
             <button
               onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
               disabled={currentPage === totalPages}
-              className="px-4 py-2 border rounded-lg text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+              className="px-3 py-1 border rounded-lg text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Next
             </button>
@@ -518,6 +544,33 @@ function Inventory() {
           onClose={() => setShowForm(false)}
           onSave={handleSave}
         />
+      )}
+
+      {itemToDelete && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-8 text-center">
+            <AlertTriangle className="w-16 h-16 mx-auto text-red-500" />
+            <h3 className="mt-4 text-xl font-bold text-gray-800">Delete Item?</h3>
+            <p className="mt-2 text-gray-600">
+              Are you sure you want to delete{' '}
+              <span className="font-semibold">{itemToDelete.name}</span>? This action cannot be undone.
+            </p>
+            <div className="mt-6 flex justify-center gap-4">
+              <button
+                onClick={() => setItemToDelete(null)}
+                className="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 font-semibold"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => handleDelete(itemToDelete.item_id)}
+                className="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-semibold"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

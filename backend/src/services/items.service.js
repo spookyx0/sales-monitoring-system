@@ -78,9 +78,19 @@ const updateItem = async (id, itemData) => {
   return { updatedItem, originalData };
 };
 
+const deleteItem = async (id) => {
+  const [result] = await db.query('DELETE FROM items WHERE item_id = ?', [id]);
+  if (result.affectedRows === 0) {
+    throw createError(404, 'Item not found');
+  }
+  return { success: true };
+};
+
+
 module.exports = {
   createItem,
   getItems,
   getItemById,
   updateItem,
+  deleteItem,
 };
