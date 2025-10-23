@@ -24,7 +24,7 @@ function App() {
       const timer = setTimeout(() => closeStatus(), 3000);
       return () => clearTimeout(timer);
     }
-  }, [status.isOpen]);
+  }, [status.isOpen]); // useCallback for closeStatus is not needed here
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -52,33 +52,31 @@ function App() {
     setAuth(null);
   };
 
-  if (loading) {
-    return <div className="flex h-screen items-center justify-center">Loading...</div>;
-  }
-
-  if (!auth) {
-    return <LoginPage onLogin={handleLogin} />;
-  }
-
   return (
     <StatusContext.Provider value={showStatus}>
-      <div className="flex h-screen bg-gray-50">
-        <Sidebar open={sidebarOpen} currentPage={currentPage} onNavigate={setCurrentPage} onLogout={handleLogout} />
-        
-        <div className="flex-1 flex flex-col overflow-hidden">
-          <Topbar user={auth.admin} onToggleSidebar={() => setSidebarOpen(!sidebarOpen)} />
+      {loading ? (
+        <div className="flex h-screen items-center justify-center">Loading...</div>
+      ) : !auth ? (
+        <LoginPage onLogin={handleLogin} />
+      ) : (
+        <div className="flex h-screen bg-gray-50">
+          <Sidebar open={sidebarOpen} currentPage={currentPage} onNavigate={setCurrentPage} onLogout={handleLogout} />
           
-          <main className="flex-1 overflow-y-auto p-6">
-            {currentPage === 'dashboard' && <Dashboard />}
-            {currentPage === 'inventory' && <Inventory />}
-            {currentPage === 'sales' && <Sales />}
-            {currentPage === 'analytics' && <Analytics />}
-            {currentPage === 'audits' && <Audits />}
-            {currentPage === 'expenses' && <Expenses />}
-          </main>
+          <div className="flex-1 flex flex-col overflow-hidden">
+            <Topbar user={auth.admin} onToggleSidebar={() => setSidebarOpen(!sidebarOpen)} />
+            
+            <main className="flex-1 overflow-y-auto p-6">
+              {currentPage === 'dashboard' && <Dashboard />}
+              {currentPage === 'inventory' && <Inventory />}
+              {currentPage === 'sales' && <Sales />}
+              {currentPage === 'analytics' && <Analytics />}
+              {currentPage === 'audits' && <Audits />}
+              {currentPage === 'expenses' && <Expenses />}
+            </main>
+          </div>
+          {status.isOpen && <StatusModal type={status.type} message={status.message} onClose={closeStatus} />}
         </div>
-        {status.isOpen && <StatusModal type={status.type} message={status.message} onClose={closeStatus} />}
-      </div>
+      )}
     </StatusContext.Provider>
   );
 }
@@ -87,20 +85,18 @@ function LoginPage({ onLogin }) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
   const showStatus = React.useContext(StatusContext);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    setError('');
     try {
       const authData = await api.login(username, password);
       onLogin(authData);
       // No success message needed here as the app transitions
     } catch (err) {
-      setError(err.message || 'Login failed. Please check your credentials.');
       console.error(err);
+      showStatus('error', err.message || 'Login failed. Please check your credentials.');
     }
     setLoading(false);
   };
@@ -113,12 +109,6 @@ function LoginPage({ onLogin }) {
           <h1 className="text-3xl font-bold text-gray-800">Sales Monitor</h1>
           <p className="text-gray-600 mt-2">Sign in to your account</p>
         </div>
-
-        {error && (
-          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4" role="alert">
-            <span className="block sm:inline">{error}</span>
-          </div>
-        )}
         
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
@@ -876,7 +866,7 @@ function Expenses() {
       console.error("Failed to fetch expenses", error);
       showStatus('error', "Could not load expenses.");
     }
-  }, [currentPage, debouncedSearch]);
+  }, [currentPage, debouncedSearch, showStatus]);
 
   useEffect(() => {
     fetchExpenses();
