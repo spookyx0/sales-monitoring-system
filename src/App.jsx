@@ -538,26 +538,28 @@ function Inventory() {
 
       {itemToDelete && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-8 text-center">
-            <AlertTriangle className="w-16 h-16 mx-auto text-red-500" />
-            <h3 className="mt-4 text-xl font-bold text-gray-800">Delete Item?</h3>
-            <p className="mt-2 text-gray-600">
-              Are you sure you want to delete{' '}
-              <span className="font-semibold">{itemToDelete.name}</span>? This action cannot be undone.
-            </p>
-            <div className="mt-6 flex justify-center gap-4">
-              <button
-                onClick={() => setItemToDelete(null)}
-                className="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 font-semibold"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => handleDelete(itemToDelete.item_id)}
-                className="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-semibold"
-              >
-                Delete
-              </button>
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full animate-in fade-in-0 zoom-in-95">
+            <div className="p-6 text-center">
+              <AlertTriangle className="w-16 h-16 mx-auto text-red-500" />
+              <h3 className="mt-4 text-xl font-bold text-gray-800">Delete Item?</h3>
+              <p className="mt-2 text-gray-600">
+                Are you sure you want to delete{' '}
+                <span className="font-semibold">{itemToDelete.name}</span>? This action cannot be undone.
+              </p>
+            </div>
+            <div className="bg-gray-50 px-6 py-4 flex justify-end gap-3 rounded-b-lg">
+                <button
+                  onClick={() => setItemToDelete(null)}
+                  className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-100 font-semibold text-gray-700 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => handleDelete(itemToDelete.item_id)}
+                  className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-semibold transition-colors"
+                >
+                  Delete
+                </button>
             </div>
           </div>
         </div>
@@ -974,22 +976,22 @@ function Expenses() {
 
       {showForm && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full animate-in fade-in-0 zoom-in-95">
             <div className="flex items-center justify-between p-6 border-b border-gray-200">
               <h3 className="text-xl font-bold text-gray-800">Add Expenses</h3>
-              <button onClick={() => setShowForm(false)} className="p-1 hover:bg-gray-100 rounded">
-                <X className="w-6 h-6" />
+              <button onClick={() => setShowForm(false)} className="p-1 rounded-full text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors">
+                <X className="w-5 h-5" />
               </button>
             </div>
 
             <form onSubmit={handleSubmit} className="p-6 space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">Date</label>
                 <input
                   type="date"
                   value={form.date}
                   onChange={(e) => setForm({...form, date: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors"
                   required
                 />
               </div>
@@ -999,7 +1001,7 @@ function Expenses() {
                 <select
                   value={form.category}
                   onChange={(e) => setForm({...form, category: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors"
                   required
                 >
                   <option value="">Select category</option>
@@ -1029,24 +1031,24 @@ function Expenses() {
                   value={form.notes}
                   onChange={(e) => setForm({...form, notes: e.target.value})}
                   rows={3}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors"
                 />
               </div>
 
-              <div className="flex gap-3 pt-4">
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-semibold"
-                >
-                  {isSubmitting ? 'Adding...' : 'Add Expenses'}
-                </button>
+              <div className="flex justify-end gap-3 pt-4">
                 <button
                   type="button"
                   onClick={() => setShowForm(false)}
-                  className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 font-semibold"
+                  className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-100 font-semibold text-gray-700 transition-colors"
                 >
                   Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-semibold transition-colors disabled:opacity-50"
+                >
+                  {isSubmitting ? 'Adding...' : 'Add Expenses'}
                 </button>
               </div>
             </form>
@@ -1070,10 +1072,12 @@ function AuditDetailsModal({ audit, onClose }) {
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-3xl max-h-[90vh] flex flex-col">
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-3xl max-h-[90vh] flex flex-col animate-in fade-in-0 zoom-in-95">
         <div className="flex items-center justify-between p-6 border-b">
           <h3 className="text-xl font-bold text-gray-800">Audit Log Details</h3>
-          <button onClick={onClose} className="p-1 hover:bg-gray-100 rounded"><X className="w-6 h-6" /></button>
+          <button onClick={onClose} className="p-1 rounded-full text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors">
+            <X className="w-5 h-5" />
+          </button>
         </div>
         <div className="p-6 overflow-y-auto space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
@@ -1104,7 +1108,7 @@ function AuditDetailsModal({ audit, onClose }) {
           </div>
         </div>
         <div className="p-4 bg-gray-50 border-t flex justify-end">
-            <button onClick={onClose} className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-100 font-semibold">
+            <button onClick={onClose} className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-100 font-semibold text-gray-700 transition-colors">
                 Close
             </button>
         </div>
@@ -1114,20 +1118,31 @@ function AuditDetailsModal({ audit, onClose }) {
 }
 
 function StatusModal({ type, message, onClose }) {
-  const isSuccess = type === 'success';
-  const Icon = isSuccess ? CheckCircle : XCircle;
-  const title = isSuccess ? 'Success!' : 'Error!';
-  const color = isSuccess ? 'green' : 'red';
+  const styles = {
+    success: {
+      Icon: CheckCircle,
+      title: 'Success!',
+      iconColor: 'text-green-500',
+      buttonColor: 'bg-green-600 hover:bg-green-700',
+    },
+    error: {
+      Icon: XCircle,
+      title: 'Error!',
+      iconColor: 'text-red-500',
+      buttonColor: 'bg-red-600 hover:bg-red-700',
+    },
+  };
+  const { Icon, title, iconColor, buttonColor } = styles[type];
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-[100]">
       <div className="bg-white rounded-lg shadow-xl max-w-sm w-full p-8 text-center transform transition-all animate-in fade-in-0 zoom-in-95">
-        <Icon className={`w-16 h-16 mx-auto text-${color}-500`} />
+        <Icon className={`w-16 h-16 mx-auto ${iconColor}`} />
         <h3 className={`mt-4 text-2xl font-bold text-gray-800`}>{title}</h3>
         <p className="mt-2 text-gray-600">{message}</p>
         <button
           onClick={onClose}
-          className={`mt-6 w-full px-4 py-2 bg-${color}-600 text-white rounded-lg hover:bg-${color}-700 font-semibold transition`}
+          className={`mt-6 w-full px-4 py-2 text-white rounded-lg font-semibold transition ${buttonColor}`}
         >
           Close
         </button>
@@ -1157,11 +1172,11 @@ function ItemFormModal({ item, onClose, onSave }) {
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+      <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] flex flex-col animate-in fade-in-0 zoom-in-95">
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
           <h3 className="text-xl font-bold text-gray-800">{item ? 'Edit Item' : 'Add New Item'}</h3>
-          <button onClick={onClose} className="p-1 hover:bg-gray-100 rounded">
-            <X className="w-6 h-6" />
+          <button onClick={onClose} className="p-1 rounded-full text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors">
+            <X className="w-5 h-5" />
           </button>
         </div>
 
@@ -1173,7 +1188,7 @@ function ItemFormModal({ item, onClose, onSave }) {
                 type="text"
                 value={form.item_number}
                 onChange={(e) => setForm({...form, item_number: e.target.value})}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors"
                 required
               />
             </div>
@@ -1183,7 +1198,7 @@ function ItemFormModal({ item, onClose, onSave }) {
                 type="text"
                 value={form.name}
                 onChange={(e) => setForm({...form, name: e.target.value})}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors"
                 required
               />
             </div>
@@ -1196,7 +1211,7 @@ function ItemFormModal({ item, onClose, onSave }) {
                 type="text"
                 value={form.category}
                 onChange={(e) => setForm({...form, category: e.target.value})}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors"
               />
             </div>
             <div>
@@ -1205,7 +1220,7 @@ function ItemFormModal({ item, onClose, onSave }) {
                 type="number"
                 value={form.qty_in_stock}
                 onChange={(e) => setForm({...form, qty_in_stock: parseInt(e.target.value, 10) || 0})}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors"
               />
             </div>
             <div>
@@ -1214,7 +1229,7 @@ function ItemFormModal({ item, onClose, onSave }) {
                 type="number"
                 value={form.reorder_level}
                 onChange={(e) => setForm({...form, reorder_level: parseInt(e.target.value, 10) || 0})}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors"
               />
             </div>
           </div>
@@ -1227,7 +1242,7 @@ function ItemFormModal({ item, onClose, onSave }) {
                 step="0.01"
                 value={form.purchase_price}
                 onChange={(e) => setForm({...form, purchase_price: parseFloat(e.target.value)})}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors"
               />
             </div>
             <div>
@@ -1237,24 +1252,24 @@ function ItemFormModal({ item, onClose, onSave }) {
                 step="0.01"
                 value={form.selling_price}
                 onChange={(e) => setForm({...form, selling_price: parseFloat(e.target.value)})}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors"
               />
             </div>
           </div>
 
-          <div className="flex gap-3 pt-4">
-            <button
-              type="submit"
-              className="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-semibold"
-            >
-              Save Item
-            </button>
-            <button
+          <div className="flex justify-end gap-3 pt-4">
+             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 font-semibold"
+              className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-100 font-semibold text-gray-700 transition-colors"
             >
               Cancel
+            </button>
+            <button
+              type="submit"
+              className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-semibold transition-colors"
+            >
+              Save Item
             </button>
           </div>
         </form>
@@ -1396,10 +1411,12 @@ function Sales() {
 function SaleDetailsModal({ sale, onClose }) {
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl">
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl animate-in fade-in-0 zoom-in-95">
         <div className="flex items-center justify-between p-6 border-b">
           <h3 className="text-xl font-bold text-gray-800">Sale Details: {sale.sale_number}</h3>
-          <button onClick={onClose} className="p-1 hover:bg-gray-100 rounded"><X className="w-6 h-6" /></button>
+          <button onClick={onClose} className="p-1 rounded-full text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors">
+            <X className="w-5 h-5" />
+          </button>
         </div>
         <div className="p-6">
           <div className="grid grid-cols-2 gap-4 mb-6 text-sm">
@@ -1440,6 +1457,11 @@ function SaleDetailsModal({ sale, onClose }) {
               <div className="flex justify-between font-bold text-base border-t pt-2 mt-2"><span >Total:</span> <span>${parseFloat(sale.total_amount).toFixed(2)}</span></div>
             </div>
           </div>
+        </div>
+        <div className="p-4 bg-gray-50 border-t flex justify-end">
+          <button onClick={onClose} className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-100 font-semibold text-gray-700 transition-colors">
+            Close
+          </button>
         </div>
       </div>
     </div>
@@ -1507,10 +1529,12 @@ function NewSaleModal({ onClose, onSaleCreated }) {
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] flex flex-col">
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] flex flex-col animate-in fade-in-0 zoom-in-95">
         <div className="flex items-center justify-between p-6 border-b">
           <h3 className="text-xl font-bold text-gray-800">Create New Sale</h3>
-          <button onClick={onClose} className="p-1 hover:bg-gray-100 rounded"><X className="w-6 h-6" /></button>
+          <button onClick={onClose} className="p-1 rounded-full text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors">
+            <X className="w-5 h-5" />
+          </button>
         </div>
 
         <div className="flex-1 flex overflow-hidden">
