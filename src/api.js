@@ -42,23 +42,11 @@ const api = {
     return handleResponse(response);
   },
 
-  // --- Dashboard ---
-  getOverview: async () => {
-    // This route doesn't exist on the backend, so we'll mock it for now.
-    // In a real app, you'd create a `GET /api/dashboard/overview` endpoint.
-    return {
-      monthRevenue: 25430.50,
-      totalItems: 342,
-      lowStockCount: 18,
-      monthExpenses: 8200.00,
-      months: ['May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct'],
-      revenue: [18500, 22300, 19800, 24100, 23200, 25430],
-      topItems: [
-        { name: 'Product A', qty: 145 }, { name: 'Product B', qty: 98 },
-        { name: 'Product C', qty: 87 }, { name: 'Product D', qty: 76 },
-        { name: 'Product E', qty: 65 }
-      ]
-    };
+  // --- Analytics ---
+  getRevenueTrend: async (params = {}) => {
+    const query = new URLSearchParams(params).toString();
+    const response = await fetch(`${API_URL}/analytics/revenue-trend?${query}`, { headers: getAuthHeaders() });
+    return handleResponse(response);
   },
 
   // --- Items ---
