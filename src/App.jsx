@@ -247,7 +247,7 @@ function Dashboard() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
           title="Month Revenue"
-          value={`$${data.monthRevenue.toLocaleString()}`}
+          value={`PHP ${data.monthRevenue.toLocaleString()}`}
           icon={DollarSign}
           color="green"
         />
@@ -265,7 +265,7 @@ function Dashboard() {
         />
         <StatCard
           title="Month Expenses"
-          value={`$${data.monthExpenses.toLocaleString()}`}
+          value={`PHP ${data.monthExpenses.toLocaleString()}`}
           icon={TrendingUp}
           color="purple"
         />
@@ -453,9 +453,9 @@ function Inventory() {
                           : 'bg-green-100 text-green-700'
                       }`}>
                         {item.qty_in_stock || 0}
-                      </span>
+                      </span> 
                     </td>
-                    <td className="px-6 py-4 text-sm font-semibold text-gray-800">${parseFloat(item.selling_price || 0).toFixed(2)}</td>
+                    <td className="px-6 py-4 text-sm font-semibold text-gray-800">PHP {parseFloat(item.selling_price || 0).toFixed(2)}</td>
                     <td className="px-6 py-4 text-sm">
                       <div className="flex gap-2">
                         <button
@@ -624,18 +624,18 @@ function Analytics() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="bg-white rounded-lg shadow p-6">
           <div className="text-sm text-gray-600 mb-1">Total Revenue</div>
-          <div className="text-3xl font-bold text-green-600">${data.monthRevenue.toLocaleString()}</div>
+          <div className="text-3xl font-bold text-green-600">PHP {data.monthRevenue.toLocaleString()}</div>
           <div className="text-xs text-gray-500 mt-1">This month</div>
         </div>
         <div className="bg-white rounded-lg shadow p-6">
           <div className="text-sm text-gray-600 mb-1">Total Expenses</div>
-          <div className="text-3xl font-bold text-red-600">${data.monthExpenses.toLocaleString()}</div>
+          <div className="text-3xl font-bold text-red-600">PHP {data.monthExpenses.toLocaleString()}</div>
           <div className="text-xs text-gray-500 mt-1">This month</div>
         </div>
         <div className="bg-white rounded-lg shadow p-6">
           <div className="text-sm text-gray-600 mb-1">Net Profit</div>
           <div className="text-3xl font-bold text-indigo-600">
-            ${(data.monthRevenue - data.monthExpenses).toLocaleString()}
+            PHP {(data.monthRevenue - data.monthExpenses).toLocaleString()}
           </div>
           <div className="text-xs text-gray-500 mt-1">This month</div>
         </div>
@@ -646,8 +646,8 @@ function Analytics() {
           <h3 className="text-lg font-semibold mb-4">Revenue Trend (6 Months)</h3>
           <div className="h-64 flex items-end justify-between gap-3">
             {data.revenue.map((val, i) => (
-              <div key={i} className="flex-1 flex flex-col items-center gap-2">
-                <div className="text-xs font-semibold text-gray-700">${(val/1000).toFixed(1)}k</div>
+              <div key={i} className="flex-1 flex flex-col items-center gap-2"> 
+                <div className="text-xs font-semibold text-gray-700">PHP {(val/1000).toFixed(1)}k</div>
                 <div
                   className="w-full bg-gradient-to-t from-indigo-500 to-indigo-400 rounded-t shadow-sm"
                   style={{ height: `${(val / Math.max(...data.revenue)) * 80}%` }}
@@ -976,7 +976,7 @@ function Expenses() {
 
       <div className="bg-white rounded-lg shadow p-6">
         <div className="text-sm text-gray-600 mb-1">Total Expenses (This Month)</div>
-        <div className="text-3xl font-bold text-red-600">${totalMonthExpenses.toFixed(2)}</div>
+        <div className="text-3xl font-bold text-red-600">PHP {totalMonthExpenses.toFixed(2)}</div>
       </div>
 
       <div className="bg-white rounded-lg shadow">
@@ -1001,7 +1001,7 @@ function Expenses() {
                       {expense.category}
                     </span>
                   </td>
-                  <td className="px-6 py-4 text-sm font-semibold text-red-600">${parseFloat(expense.amount || 0).toFixed(2)}</td>
+                  <td className="px-6 py-4 text-sm font-semibold text-red-600">PHP {parseFloat(expense.amount || 0).toFixed(2)}</td>
                   <td className="px-6 py-4 text-sm text-gray-600">{expense.notes}</td>
                   <td className="px-6 py-4 text-sm text-gray-600">{expense.username}</td>
                   <td className="px-6 py-4 text-sm">
@@ -1509,8 +1509,8 @@ function Sales() {
                     <td className="px-6 py-4 text-sm font-medium text-indigo-600">{sale.sale_number}</td>
                     <td className="px-6 py-4 text-sm text-gray-600">{new Date(sale.created_at).toLocaleString()}</td>
                     <td className="px-6 py-4 text-sm text-gray-600">{sale.username}</td>
-                    <td className="px-6 py-4 text-sm text-gray-600">{sale.payment_method}</td>
-                    <td className="px-6 py-4 text-sm font-semibold text-gray-800">${parseFloat(sale.total_amount || 0).toFixed(2)}</td>
+                    <td className="px-6 py-4 text-sm text-gray-600">{sale.payment_method}</td> 
+                    <td className="px-6 py-4 text-sm font-semibold text-gray-800">PHP {parseFloat(sale.total_amount || 0).toFixed(2)}</td>
                     <td className="px-6 py-4 text-sm">
                       <button
                         onClick={() => setViewingSale(sale)}
@@ -1596,16 +1596,16 @@ function SaleDetailsModal({ sale, onClose }) {
                 {sale.items.map(item => (
                   <tr key={item.item_id}>
                     <td className="px-4 py-3 text-sm font-medium">{item.name}</td>
-                    <td className="px-4 py-3 text-sm">{item.quantity}</td>
-                    <td className="px-4 py-3 text-sm">${parseFloat(item.price_at_sale).toFixed(2)}</td>
-                    <td className="px-4 py-3 text-sm">${parseFloat(item.subtotal).toFixed(2)}</td>
+                    <td className="px-4 py-3 text-sm">{item.quantity}</td> 
+                    <td className="px-4 py-3 text-sm">PHP {parseFloat(item.price_at_sale).toFixed(2)}</td>
+                    <td className="px-4 py-3 text-sm">PHP {parseFloat(item.subtotal).toFixed(2)}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
 
-          <div className="mt-6 flex justify-end">
+          <div className="mt-6 flex justify-end"> 
             <div className="w-full max-w-xs space-y-2 text-sm">
               <div className="flex justify-between"><span className="text-gray-600">Subtotal:</span> <span>${(parseFloat(sale.total_amount) - parseFloat(sale.tax_amount) + parseFloat(sale.discount_amount)).toFixed(2)}</span></div>
               <div className="flex justify-between"><span className="text-gray-600">Tax:</span> <span>${parseFloat(sale.tax_amount).toFixed(2)}</span></div>
@@ -1721,7 +1721,7 @@ function NewSaleModal({ onClose, onSaleCreated }) {
                   <div key={item.item_id} className="flex items-center justify-between">
                     <div>
                       <div className="font-medium">{item.name}</div>
-                      <div className="text-sm text-gray-500">${parseFloat(item.price_at_sale).toFixed(2)}</div>
+                      <div className="text-sm text-gray-500">PHP {parseFloat(item.price_at_sale).toFixed(2)}</div>
                     </div>
                     <div className="flex items-center gap-2">
                       <button onClick={() => updateQuantity(item.item_id, item.quantity - 1)} className="p-1 border rounded"><Minus className="w-4 h-4" /></button>
@@ -1732,9 +1732,9 @@ function NewSaleModal({ onClose, onSaleCreated }) {
                 ))}
             </div>
             <div className="p-6 border-t bg-gray-50 space-y-3">
-              <div className="flex justify-between text-sm"><span className="text-gray-600">Subtotal</span><span className="font-medium">${subtotal.toFixed(2)}</span></div>
-              <div className="flex justify-between text-sm"><span className="text-gray-600">Tax (8%)</span><span className="font-medium">${tax.toFixed(2)}</span></div>
-              <div className="flex justify-between font-bold text-lg"><span >Total</span><span>${total.toFixed(2)}</span></div>
+              <div className="flex justify-between text-sm"><span className="text-gray-600">Subtotal</span><span className="font-medium">PHP {subtotal.toFixed(2)}</span></div>
+              <div className="flex justify-between text-sm"><span className="text-gray-600">Tax (8%)</span><span className="font-medium">PHP {tax.toFixed(2)}</span></div>
+              <div className="flex justify-between font-bold text-lg"><span >Total</span><span>PHP {total.toFixed(2)}</span></div>
               <select value={paymentMethod} onChange={e => setPaymentMethod(e.target.value)} className="w-full mt-2 px-3 py-2 border rounded-lg">
                 <option>Cash</option>
                 <option>Credit Card</option>
