@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { BarChart3, Package, DollarSign, TrendingUp, AlertTriangle, Users, LogOut, Menu, X, Plus, Edit, Trash2, Search, Calendar, ShoppingCart, Minus, FileText, CheckCircle, XCircle, Loader2 } from 'lucide-react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { BarChart3, Package, DollarSign, TrendingUp, AlertTriangle, Users, LogOut, Menu, X, Plus, Edit, Trash2, Search, Calendar, ShoppingCart, Minus, FileText, CheckCircle, XCircle, Loader2, Bell } from 'lucide-react';
 import api from './api';
 
 const StatusContext = React.createContext();
@@ -10,6 +10,7 @@ function App() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [loading, setLoading] = useState(true);
   const [status, setStatus] = useState({ isOpen: false, type: '', message: '' });
+  const [notifications, setNotifications] = useState([]);
 
   const showStatus = useCallback((type, message) => {
     setStatus({ isOpen: true, type, message });
@@ -43,6 +44,23 @@ function App() {
     checkAuth();
   }, []);
 
+  const fetchNotifications = useCallback(async () => {
+    try {
+      // This is a mock implementation. Ideally, this would be a single API call.
+      const { items } = await api.getItems({ limit: 1000 });
+      const lowStockNotifications = items
+        .filter(item => item.qty_in_stock <= item.reorder_level)
+        .map(item => ({
+          id: `low-stock-${item.item_id}`,
+          message: `${item.name} is low on stock (${item.qty_in_stock} left).`,
+          type: 'low_stock',
+          read: false,
+          createdAt: new Date().toISOString(),
+        }));
+      setNotifications(lowStockNotifications);
+    } catch (error) { console.error("Failed to fetch notifications", error); }
+  }, []);
+
   const handleLogin = (authData) => {
     setAuth(authData);
   };
@@ -51,6 +69,10 @@ function App() {
     api.logout();
     setAuth(null);
   };
+
+  useEffect(() => {
+    if (auth) fetchNotifications();
+  }, [auth, fetchNotifications]);
 
   return (
     <StatusContext.Provider value={showStatus}>
@@ -63,15 +85,15 @@ function App() {
           <Sidebar open={sidebarOpen} currentPage={currentPage} onNavigate={setCurrentPage} onLogout={handleLogout} />
           
           <div className="flex-1 flex flex-col overflow-hidden">
-            <Topbar user={auth.admin} onToggleSidebar={() => setSidebarOpen(!sidebarOpen)} />
+            <Topbar user={auth.admin} onToggleSidebar={() => setSidebarOpen(!sidebarOpen)} notifications={notifications} setNotifications={setNotifications} onNavigate={setCurrentPage} />
             
             <main className="flex-1 overflow-y-auto p-6">
               {currentPage === 'dashboard' && <Dashboard />}
-              {currentPage === 'inventory' && <Inventory />}
-              {currentPage === 'sales' && <Sales />}
+              {currentPage === 'inventory' && <Inventory setNotifications={setNotifications} user={auth.admin} />}
+              {currentPage === 'sales' && <Sales setNotifications={setNotifications} user={auth.admin} />}
               {currentPage === 'analytics' && <Analytics />}
               {currentPage === 'audits' && <Audits />}
-              {currentPage === 'expenses' && <Expenses />}
+              {currentPage === 'expenses' && <Expenses setNotifications={setNotifications} user={auth.admin} />}
             </main>
           </div>
           {status.isOpen && <StatusModal type={status.type} message={status.message} onClose={closeStatus} />}
@@ -206,7 +228,33 @@ function Sidebar({ open, currentPage, onNavigate, onLogout }) {
   );
 }
 
-function Topbar({ user, onToggleSidebar }) {
+function Topbar({ user, onToggleSidebar, notifications, setNotifications, onNavigate }) {
+  const [showNotifications, setShowNotifications] = useState(false);
+  const unreadCount = notifications.filter(n => !n.read).length;
+  const notificationsRef = useRef(null);
+
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (notificationsRef.current && !notificationsRef.current.contains(event.target)) {
+        setShowNotifications(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [notificationsRef]);
+
+  const handleNotificationClick = (notification) => {
+    if (notification.type === 'low_stock') {
+      onNavigate('inventory');
+    }
+    setNotifications(notifications.map(n => n.id === notification.id ? { ...n, read: true } : n));
+    setShowNotifications(false);
+  };
+
+  const markAllAsRead = () => {
+    setNotifications(notifications.map(n => ({ ...n, read: true })));
+  };
+
   return (
     <header className="bg-white border-b border-gray-200 px-6 py-4">
       <div className="flex items-center justify-between">
@@ -218,6 +266,48 @@ function Topbar({ user, onToggleSidebar }) {
         </button>
         
         <div className="flex items-center gap-4">
+          <div className="relative" ref={notificationsRef}>
+            <button onClick={() => setShowNotifications(prev => !prev)} className="p-2 rounded-full hover:bg-gray-100 transition relative">
+              <Bell className="w-6 h-6 text-gray-600" />
+              {unreadCount > 0 && (
+                <span className="absolute top-0 right-0 block h-5 w-5 rounded-full bg-red-500 text-white text-xs flex items-center justify-center">
+                  {unreadCount}
+                </span>
+              )}
+            </button>
+            {showNotifications && (
+              <div className="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-xl border z-20 animate-in fade-in-0 zoom-in-95">
+                <div className="p-4 flex justify-between items-center border-b">
+                  <h4 className="font-semibold text-gray-800">Notifications</h4>
+                  {unreadCount > 0 && (
+                    <button onClick={markAllAsRead} className="text-sm text-indigo-600 hover:underline">Mark all as read</button>
+                  )}
+                </div>
+                <div className="max-h-96 overflow-y-auto">
+                  {notifications.length > 0 ? (
+                    notifications.map(n => (
+                      <a
+                        key={n.id}
+                        href="#"
+                        onClick={(e) => { e.preventDefault(); handleNotificationClick(n); }}
+                        className={`block p-4 hover:bg-gray-50 border-b ${!n.read ? 'bg-indigo-50' : ''}`}
+                      >
+                        <div className="flex items-start gap-3">
+                          <div className={`mt-1 w-2 h-2 rounded-full ${!n.read ? 'bg-indigo-500' : 'bg-gray-300'}`}></div>
+                          <div>
+                            <p className="text-sm text-gray-700">{n.message}</p>
+                            <p className="text-xs text-gray-500 mt-1">{new Date(n.createdAt).toLocaleString()}</p>
+                          </div>
+                        </div>
+                      </a>
+                    ))
+                  ) : (
+                    <p className="text-center text-gray-500 p-8">No notifications yet.</p>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
           <div className="text-right">
             <div className="text-sm font-semibold text-gray-800">{user.full_name}</div>
             <div className="text-xs text-gray-500">Administrator</div>
@@ -332,7 +422,7 @@ function StatCard({ title, value, icon: Icon, color }) {
   );
 }
 
-function Inventory() {
+function Inventory({ setNotifications, user }) {
   const [items, setItems] = useState([]);
   const [showForm, setShowForm] = useState(false);
   const [editItem, setEditItem] = useState(null);
@@ -367,10 +457,24 @@ function Inventory() {
     try {
       if (itemId) {
         await api.updateItem(itemId, formData);
+        setNotifications(prev => [{
+          id: `update-item-${itemId}-${Date.now()}`,
+          message: `${user.full_name} updated item: ${formData.name}.`,
+          type: 'item_update',
+          read: false,
+          createdAt: new Date().toISOString(),
+        }, ...prev]);
         showStatus('success', 'Item updated successfully!');
       } else {
-        await api.createItem(formData);
+        const newItem = await api.createItem(formData);
         showStatus('success', 'Item created successfully!');
+        setNotifications(prev => [{
+          id: `create-item-${newItem.item_id}-${Date.now()}`,
+          message: `${user.full_name} created a new item: ${formData.name}.`,
+          type: 'item_create',
+          read: false,
+          createdAt: new Date().toISOString(),
+        }, ...prev]);
       }
       setShowForm(false);
       fetchItems(); // Refresh list
@@ -381,10 +485,18 @@ function Inventory() {
   };
 
   const handleDelete = async (itemId) => {
+    const itemToDelete = items.find(i => i.item_id === itemId);
     try {
       await api.deleteItem(itemId);
       setItemToDelete(null); // Close modal
       fetchItems(); // Refresh list
+      setNotifications(prev => [{
+        id: `delete-item-${itemId}-${Date.now()}`,
+        message: `${user.full_name} deleted item: ${itemToDelete.name}.`,
+        type: 'item_delete',
+        read: false,
+        createdAt: new Date().toISOString(),
+      }, ...prev]);
       showStatus('success', 'Item deleted successfully.');
     } catch (error) {
       console.error("Failed to delete item", error);
@@ -852,7 +964,7 @@ function Audits() {
   );
 }
 
-function Expenses() {
+function Expenses({ setNotifications, user }) {
   const [expenses, setExpenses] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalExpenses, setTotalExpenses] = useState(0);
@@ -936,6 +1048,23 @@ function Expenses() {
 
     try {
       await apiCall;
+      if (editingExpense) {
+        setNotifications(prev => [{
+          id: `update-expense-${editingExpense.expense_id}-${Date.now()}`,
+          message: `${user.full_name} updated an expense of ${form.amount} for ${form.category}.`,
+          type: 'expense_update',
+          read: false,
+          createdAt: new Date().toISOString(),
+        }, ...prev]);
+      } else {
+        setNotifications(prev => [{
+          id: `create-expense-${Date.now()}`,
+          message: `${user.full_name} added a new expense of ${form.amount} for ${form.category}.`,
+          type: 'expense_create',
+          read: false,
+          createdAt: new Date().toISOString(),
+        }, ...prev]);
+      }
       await fetchExpenses(); // Refresh the list
       handleCloseModal();
       showStatus('success', successMessage);
@@ -1434,7 +1563,7 @@ function ItemFormModal({ item, onClose, onSave }) {
   );
 }
 
-function Sales() {
+function Sales({ setNotifications, user }) {
   const [sales, setSales] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalSales, setTotalSales] = useState(0);
@@ -1462,6 +1591,13 @@ function Sales() {
     setShowSaleModal(false); // Close the modal
     setCurrentPage(1); // Go back to the first page to see the new sale
     setSearch(''); // Clear search
+    setNotifications(prev => [{
+      id: `new-sale-${Date.now()}`,
+      message: `${user.full_name} made a new sale.`,
+      type: 'sale_create',
+      read: false,
+      createdAt: new Date().toISOString(),
+    }, ...prev]);
     fetchSales(); // Refresh the sales list
   };
 
