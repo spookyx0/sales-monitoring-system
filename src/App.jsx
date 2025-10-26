@@ -1442,7 +1442,7 @@ function Sales() {
   const [viewingSale, setViewingSale] = useState(null);
   const [search, setSearch] = useState('');
   const debouncedSearch = useDebounce(search, 300);
-  const salesPerPage = 8; // Define how many sales per page
+  const salesPerPage = 11; // Define how many sales per page
 
   const fetchSales = useCallback(async () => {
     try {
