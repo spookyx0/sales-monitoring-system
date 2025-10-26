@@ -289,8 +289,7 @@ function Topbar({ user, onToggleSidebar, notifications, setNotifications, onNavi
                       <a
                         key={n.id}
                         href="#"
-                        onClick={(e) => { e.preventDefault(); handleNotificationClick(n); }}
-                        className={`block p-4 hover:bg-gray-50 border-b ${!n.read ? 'bg-indigo-50' : ''}`}
+                        onClick={(e) => { e.preventDefault(); handleNotificationClick(n); }} className={`block p-4 hover:bg-gray-50 border-b ${!n.read ? 'bg-indigo-50' : ''}`}
                       >
                         <div className="flex items-start gap-3">
                           <div className={`mt-1 w-2 h-2 rounded-full ${!n.read ? 'bg-indigo-500' : 'bg-gray-300'}`}></div>
