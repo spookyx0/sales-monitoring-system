@@ -322,12 +322,68 @@ function Topbar({ user, onToggleSidebar, notifications, setNotifications, onNavi
 
 function Dashboard() {
   const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    api.getOverview().then(setData);
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const [salesData, itemsData, expensesData] = await Promise.all([
+          api.getSales({ limit: 1000 }), // Fetch recent sales
+          api.getItems({ limit: 1000 }), // Fetch all items for counts
+          api.getExpenses({ limit: 1000 }) // Fetch recent expenses
+        ]);
+
+        const now = new Date();
+        const currentMonth = now.getMonth();
+        const currentYear = now.getFullYear();
+
+        const monthRevenue = salesData.sales.reduce((sum, sale) => {
+          const saleDate = new Date(sale.created_at);
+          if (saleDate.getMonth() === currentMonth && saleDate.getFullYear() === currentYear) {
+            return sum + parseFloat(sale.total_amount);
+          }
+          return sum;
+        }, 0);
+
+        const monthExpenses = expensesData.expenses.reduce((sum, expense) => {
+            const expenseDate = new Date(expense.date);
+            if (expenseDate.getMonth() === currentMonth && expenseDate.getFullYear() === currentYear) {
+                return sum + parseFloat(expense.amount);
+            }
+            return sum;
+        }, 0);
+
+        const overview = {
+          monthRevenue,
+          totalItems: itemsData.total,
+          lowStockCount: itemsData.items.filter(i => i.qty_in_stock <= i.reorder_level).length,
+          monthExpenses,
+          revenue: [/* Mock data for trend, needs backend logic */ 12000, 19000, 3000, 5000, 2000, 3000],
+          months: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+          topItems: salesData.sales.flatMap(s => s.items).reduce((acc, item) => {
+            const existing = acc.find(i => i.name === item.name);
+            if (existing) {
+              existing.qty += item.quantity;
+            } else {
+              acc.push({ name: item.name, qty: item.quantity });
+            }
+            return acc;
+          }, []).sort((a, b) => b.qty - a.qty).slice(0, 5)
+        };
+
+        setData(overview);
+      } catch (error) {
+        console.error("Failed to fetch dashboard data", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
   }, []);
 
-  if (!data) return <div>Loading...</div>;
+  if (loading || !data) return <div>Loading...</div>;
 
   return (
     <div className="space-y-6">
@@ -692,9 +748,48 @@ function Analytics() {
 
   useEffect(() => {
     setLoading(true);
-    api.getOverview(appliedDateRange)
-      .then(setData)
-      .finally(() => setLoading(false));
+    const fetchAnalyticsData = async () => {
+      try {
+        const [salesData, expensesData] = await Promise.all([
+          api.getSales({ limit: 1000, ...appliedDateRange }),
+          api.getExpenses({ limit: 1000, ...appliedDateRange })
+        ]);
+
+        const monthRevenue = salesData.sales.reduce((sum, sale) => sum + parseFloat(sale.total_amount), 0);
+        const monthExpenses = expensesData.expenses.reduce((sum, expense) => sum + parseFloat(expense.amount), 0);
+
+        // Mocked trend data - a real implementation would require more complex backend logic
+        const revenueTrend = [12000, 19000, 3000, 5000, 2000, 3000].map(v => v * (Math.random() + 0.5));
+        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'];
+
+        const topItems = salesData.sales
+          .flatMap(s => s.items)
+          .reduce((acc, item) => {
+            const existing = acc.find(i => i.name === item.name);
+            if (existing) {
+              existing.qty += item.quantity;
+            } else {
+              acc.push({ name: item.name, qty: item.quantity });
+            }
+            return acc;
+          }, [])
+          .sort((a, b) => b.qty - a.qty)
+          .slice(0, 5);
+
+        setData({
+          monthRevenue,
+          monthExpenses,
+          revenue: revenueTrend,
+          months,
+          topItems
+        });
+      } catch (error) {
+        console.error("Failed to fetch analytics data", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchAnalyticsData();
   }, [appliedDateRange]);
 
   const handleApplyFilter = () => {
