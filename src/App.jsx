@@ -165,7 +165,7 @@ function Sidebar({ open, currentPage, onNavigate, onLogout }) {
 
   return (
     <aside className="w-64 bg-white border-r border-gray-200 flex flex-col">
-      <div className="p-6 border-b border-gray-200">
+      <div className="p-5 border-b border-gray-200">
         <div className="flex items-center gap-2">
           <BarChart3 className="w-8 h-8 text-indigo-600" />
           <h1 className="text-xl font-bold text-gray-800">Sales Monitoring</h1>
@@ -340,7 +340,7 @@ function Inventory() {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
   const [loading, setLoading] = useState(true);
-  const itemsPerPage = 10; // Define how many items per page
+  const itemsPerPage = 9; // Define how many items per page
   const [itemToDelete, setItemToDelete] = useState(null);
 
   const showStatus = React.useContext(StatusContext);
@@ -724,7 +724,7 @@ function Audits() {
   const [filter, setFilter] = useState({ action: '', resource: '' });
   const [search, setSearch] = useState('');
   const [viewingAudit, setViewingAudit] = useState(null);
-  const auditsPerPage = 15;
+  const auditsPerPage = 7;
   const debouncedSearch = useDebounce(search, 300);
 
   const fetchAudits = useCallback(async () => {
@@ -736,7 +736,7 @@ function Audits() {
     } catch (error) {
       console.error("Failed to fetch audits", error);
     }
-  }, [currentPage, filter, debouncedSearch]);
+  }, [currentPage, filter, debouncedSearch, auditsPerPage]);
 
   useEffect(() => {
     fetchAudits();
@@ -863,7 +863,7 @@ function Expenses() {
   const [formErrors, setFormErrors] = useState({});
   const [search, setSearch] = useState('');
   const debouncedSearch = useDebounce(search, 300);
-  const expensesPerPage = 10;
+  const expensesPerPage = 8;
   const showStatus = React.useContext(StatusContext);
 
   const fetchExpenses = useCallback(async () => {
@@ -1442,7 +1442,7 @@ function Sales() {
   const [viewingSale, setViewingSale] = useState(null);
   const [search, setSearch] = useState('');
   const debouncedSearch = useDebounce(search, 300);
-  const salesPerPage = 10; // Define how many sales per page
+  const salesPerPage = 8; // Define how many sales per page
 
   const fetchSales = useCallback(async () => {
     try {
