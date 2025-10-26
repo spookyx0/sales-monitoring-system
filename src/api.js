@@ -135,6 +135,14 @@ const api = {
     });
     return handleResponse(response);
   },
+  updateExpense: async (id, expenseData) => {
+    const response = await fetch(`${API_URL}/expenses/${id}`, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(expenseData),
+    });
+    return handleResponse(response);
+  },
 };
 
 export default api;

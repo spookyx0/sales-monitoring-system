@@ -7,7 +7,7 @@ const createItem = async (itemData) => {
   const [result] = await db.query(
     `INSERT INTO items (item_number, name, description, category, sku, barcode, qty_in_stock, reorder_level, purchase_price, selling_price, status, image_url)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    [item_number, name, description, category, sku, barcode, qty_in_stock, reorder_level, purchase_price, selling_price, status || 'active', image_url]
+    [item_number, name, description, category, sku, barcode, qty_in_stock, reorder_level, purchase_price || 0, selling_price, status || 'active', image_url]
   );
   return { item_id: result.insertId, ...itemData };
 };

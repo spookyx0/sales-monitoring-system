@@ -4,7 +4,7 @@ const auditsService = require('../services/audits.service');
 const createExpense = async (req, res, next) => {
   try {
     const expense = await expensesService.createExpense(req.body, req.user.id);
-    await auditsService.log(req.user.id, 'EXPENSE', 'expenses', expense.expense_id, null, req.body, req.ip);
+    await auditsService.log(req.user.id, 'CREATE', 'expenses', expense.expense_id, null, req.body, req.ip);
     res.status(201).json({ success: true, data: expense });
   } catch (err) {
     next(err);
@@ -21,4 +21,16 @@ const getExpenses = async (req, res, next) => {
   }
 };
 
-module.exports = { createExpense, getExpenses };
+const updateExpense = async (req, res, next) => {
+  try {
+    const beforeState = await expensesService.getExpenseById(req.params.id);
+    const expense = await expensesService.updateExpense(req.params.id, req.body);
+    await auditsService.log(req.user.id, 'UPDATE', 'expenses', parseInt(req.params.id), beforeState, req.body, req.ip);
+    res.json({ success: true, data: expense });
+  } catch (err) {
+    next(err);
+  }
+};
+
+
+module.exports = { createExpense, getExpenses, updateExpense };

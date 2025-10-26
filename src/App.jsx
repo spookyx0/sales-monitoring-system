@@ -857,6 +857,7 @@ function Expenses() {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalExpenses, setTotalExpenses] = useState(0);
   const [showForm, setShowForm] = useState(false);
+  const [editingExpense, setEditingExpense] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [form, setForm] = useState({ date: '', category: '', amount: '', notes: '' });
   const [formErrors, setFormErrors] = useState({});
@@ -902,19 +903,42 @@ function Expenses() {
     }
   };
 
+  const handleCloseModal = () => {
+    setShowForm(false);
+    setEditingExpense(null);
+    setForm({ date: '', category: '', amount: '', notes: '' });
+    setFormErrors({});
+  };
+
+  const handleEditClick = (expense) => {
+    setEditingExpense(expense);
+    setForm({
+      date: expense.date,
+      category: expense.category,
+      amount: expense.amount,
+      notes: expense.notes || '',
+    });
+    setShowForm(true);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!validateForm()) {
       return;
     }
     setIsSubmitting(true);
+    const apiCall = editingExpense
+      ? api.updateExpense(editingExpense.expenses_id, form)
+      : api.createExpense(form);
+    const successMessage = editingExpense
+      ? 'Expense updated successfully!'
+      : 'Expense added successfully!';
+
     try {
-      await api.createExpense(form);
-      setShowForm(false); // Close modal
-      setForm({ date: '', category: '', amount: '', notes: '' }); // Reset form
-      setFormErrors({}); // Reset errors
+      await apiCall;
       await fetchExpenses(); // Refresh the list
-      showStatus('success', 'Expense added successfully!');
+      handleCloseModal();
+      showStatus('success', successMessage);
     } catch (error) {
       showStatus('error', `Failed to add expense: ${error.message}`);
     } finally {
@@ -940,7 +964,10 @@ function Expenses() {
               className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500"
             />
           </div>
-          <button onClick={() => setShowForm(true)} className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition">
+          <button onClick={() => {
+            setEditingExpense(null);
+            setShowForm(true);
+          }} className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition">
             <Plus className="w-5 h-5" />
             Add Expenses
           </button>
@@ -962,6 +989,7 @@ function Expenses() {
                 <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Amount</th>
                 <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Notes</th>
                 <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Admin</th>
+                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
@@ -976,6 +1004,14 @@ function Expenses() {
                   <td className="px-6 py-4 text-sm font-semibold text-red-600">${parseFloat(expense.amount || 0).toFixed(2)}</td>
                   <td className="px-6 py-4 text-sm text-gray-600">{expense.notes}</td>
                   <td className="px-6 py-4 text-sm text-gray-600">{expense.username}</td>
+                  <td className="px-6 py-4 text-sm">
+                    <button
+                      onClick={() => handleEditClick(expense)}
+                      className="p-1 text-indigo-600 hover:bg-indigo-50 rounded"
+                    >
+                      <Edit className="w-4 h-4" />
+                    </button>
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -1010,8 +1046,8 @@ function Expenses() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-lg shadow-xl max-w-md w-full animate-in fade-in-0 zoom-in-95">
             <div className="flex items-center justify-between p-6 border-b border-gray-200">
-              <h3 className="text-xl font-bold text-gray-800">Add Expenses</h3>
-              <button onClick={() => setShowForm(false)} className="p-1 rounded-full text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors">
+              <h3 className="text-xl font-bold text-gray-800">{editingExpense ? 'Edit Expense' : 'Add Expense'}</h3>
+              <button onClick={handleCloseModal} className="p-1 rounded-full text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors">
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -1083,7 +1119,7 @@ function Expenses() {
               <div className="flex justify-end gap-3 pt-4">
                 <button
                   type="button"
-                  onClick={() => setShowForm(false)}
+                  onClick={handleCloseModal}
                   className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-100 font-semibold text-gray-700 transition-colors"
                 >
                   Cancel
@@ -1096,7 +1132,7 @@ function Expenses() {
                   {isSubmitting ? (
                     <Loader2 className="h-5 w-5 animate-spin" />
                   ) : (
-                    'Add Expenses'
+                    editingExpense ? 'Save Changes' : 'Add Expense'
                   )}
                 </button>
               </div>
