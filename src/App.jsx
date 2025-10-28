@@ -1134,7 +1134,7 @@ function Expenses({ setNotifications, user }) {
     }
     setIsSubmitting(true);
     const apiCall = editingExpense
-      ? api.updateExpense(editingExpense.expenses_id, form)
+      ? api.updateExpense(editingExpense.expense_id, form)
       : api.createExpense(form);
     const successMessage = editingExpense
       ? 'Expense updated successfully!'
@@ -1217,7 +1217,7 @@ function Expenses({ setNotifications, user }) {
             </thead>
             <tbody className="divide-y divide-gray-200">
               {expenses.map(expense => (
-                <tr key={expense.expenses_id} className="hover:bg-gray-50">
+                <tr key={expense.expense_id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 text-sm text-gray-600">{expense.date}</td>
                   <td className="px-6 py-4 text-sm">
                     <span className="px-2 py-1 bg-gray-100 text-gray-700 rounded text-xs font-medium">
