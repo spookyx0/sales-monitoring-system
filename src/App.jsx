@@ -1278,21 +1278,34 @@ function Analytics() {
 
         <div className="bg-white rounded-lg shadow p-6">
           <h3 className="text-lg font-semibold mb-4">Top Products by Sales Volume ({timePeriod.charAt(0).toUpperCase() + timePeriod.slice(1)})</h3>
-          <div className="space-y-4">
-            {data.topSellingProducts.length > 0 ? data.topSellingProducts.map((item, i) => (
-              <div key={i}>
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-sm font-medium text-gray-700">{item.name}</span>
-                  <span className="text-sm font-bold text-gray-800">{item.total_quantity} units</span>
-                </div>
-                <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-indigo-500 rounded-full transition-all duration-300"
-                    style={{ width: `${(item.total_quantity / data.topSellingProducts[0].total_quantity) * 100}%` }}
-                  />
-                </div>
-              </div>
-            )) : <p className="text-center text-gray-500 py-8">No sales data for this period yet.</p>}
+          <div className="space-y-2">
+            {data.topSellingProducts.length > 0 ? (
+              data.topSellingProducts.map((item, i) => {
+                const rankColors = [
+                  'bg-yellow-400 text-yellow-800',
+                  'bg-gray-300 text-gray-700',
+                  'bg-yellow-600 text-yellow-100',
+                ];
+                const maxQty = data.topSellingProducts[0].total_quantity || 1;
+                return (
+                  <div key={i} className="group p-2 rounded-lg hover:bg-gray-50 transition-colors">
+                    <div className="flex items-center gap-4">
+                      <div className={`w-8 h-8 flex-shrink-0 rounded-full flex items-center justify-center font-bold text-sm ${rankColors[i] || 'bg-gray-100 text-gray-600'}`}>
+                        {i + 1}
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex justify-between items-center text-sm">
+                          <span className="font-medium text-gray-800">{item.name}</span>
+                          <span className="font-bold text-gray-600">{item.total_quantity} units</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })
+            ) : (
+              <p className="text-center text-gray-500 py-8">No sales data for this period yet.</p>
+            )}
           </div>
         </div>
       </div>
