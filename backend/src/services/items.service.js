@@ -12,7 +12,7 @@ const createItem = async (itemData) => {
   return { item_id: result.insertId, ...itemData };
 };
 
-const getItems = async ({ page = 1, limit = 20, search, status, lowStock }) => {
+const getItems = async ({ page = 1, limit = 20, search, status, lowStock, sortBy, sortOrder }) => {
   let query = 'SELECT * FROM items WHERE 1=1';
   const params = [];
   let countQuery = 'SELECT COUNT(*) as total FROM items WHERE 1=1';
@@ -26,12 +26,14 @@ const getItems = async ({ page = 1, limit = 20, search, status, lowStock }) => {
     countParams.push(`%${search}%`, `%${search}%`, `%${search}%`);
   }
 
+  // Correctly handle status filtering for both query and countQuery
   if (status && status !== 'all') {
-    query += ' AND status = ?';
-    countQuery += ' AND status = ?';
+    const statusQuery = ' AND status = ?';
+    query += statusQuery;
+    countQuery += statusQuery;
     params.push(status);
     countParams.push(status);
-  } else if (!status) { // Default to 'active' if status is not provided
+  } else if (!status) {
     query += " AND status = 'active'";
     countQuery += " AND status = 'active'";
   } // if status is 'all', we don't add a WHERE clause for it
@@ -41,8 +43,15 @@ const getItems = async ({ page = 1, limit = 20, search, status, lowStock }) => {
     countQuery += ' AND qty_in_stock <= reorder_level';
   }
 
+  // Whitelist columns for sorting to prevent SQL injection
+  const allowedSortBy = ['item_number', 'name', 'category', 'qty_in_stock', 'selling_price', 'created_at'];
+  const sortColumn = allowedSortBy.includes(sortBy) ? sortBy : 'created_at';
+  const sortDirection = sortOrder === 'asc' ? 'ASC' : 'DESC';
+
   const offset = (page - 1) * limit;
-  query += ' ORDER BY created_at DESC LIMIT ? OFFSET ?';
+  // Add secondary sort by item_id for stable sorting
+  query += ` ORDER BY ${sortColumn} ${sortDirection}, item_id ${sortDirection}`;
+  query += ' LIMIT ? OFFSET ?';
   params.push(parseInt(limit), offset);
 
   const [items] = await db.query(query, params);
@@ -90,6 +99,15 @@ const deleteItem = async (id) => {
   return { success: true };
 };
 
+const restoreItem = async (id) => {
+  // "Un-soft-delete" by setting status to 'active'
+  const [result] = await db.query("UPDATE items SET status = 'active' WHERE item_id = ?", [id]);
+  if (result.affectedRows === 0) {
+    throw createError(404, 'Item not found');
+  }
+  return { success: true };
+};
+
 
 module.exports = {
   createItem,
@@ -97,4 +115,5 @@ module.exports = {
   getItemById,
   updateItem,
   deleteItem,
+  restoreItem,
 };

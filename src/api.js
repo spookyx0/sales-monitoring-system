@@ -86,6 +86,16 @@ const api = {
     }
     return { success: true }; // For 200 OK or 204 No Content
   },
+  restoreItem: async (id) => {
+    const response = await fetch(`${API_URL}/items/${id}/restore`, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+    });
+    if (!response.ok) {
+      return handleResponse(response);
+    }
+    return { success: true };
+  },
 
   // --- Sales ---
   getSales: async (params = {}) => {

@@ -3,14 +3,14 @@ const auditsService = require('../services/audits.service');
 
 const getItems = async (req, res, next) => {
   try {
-    const { page = 1, limit = 20, search, category, lowStock } = req.query;
-    const items = await itemsService.getItems({ page, limit, search, category, lowStock });
+    // Destructure all expected query params here
+    const { page, limit, search, status, lowStock, sortBy, sortOrder } = req.query;
+    const items = await itemsService.getItems({ page, limit, search, status, lowStock, sortBy, sortOrder });
     res.json({ success: true, data: items });
   } catch (err) {
     next(err);
   }
 };
-
 const getItem = async (req, res, next) => {
   try {
     const item = await itemsService.getItemById(req.params.id);
@@ -55,4 +55,18 @@ const deleteItem = async (req, res, next) => {
   }
 };
 
-module.exports = { getItems, getItem, createItem, updateItem, deleteItem };
+const restoreItem = async (req, res, next) => {
+  try {
+    const beforeState = await itemsService.getItemById(req.params.id);
+    await itemsService.restoreItem(req.params.id);
+    await auditsService.log(req.user.id, 'RESTORE', 'items', parseInt(req.params.id), beforeState, null, req.ip);
+    res.json({ success: true, message: 'Item restored' });
+  } catch (err) {
+    next(err);
+  }
+};
+
+
+module.exports = { getItems, 
+  getItem, createItem, 
+  updateItem, deleteItem, restoreItem };

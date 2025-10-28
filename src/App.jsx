@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { BarChart3, Package, DollarSign, TrendingUp, AlertTriangle, Users, LogOut, Menu, X, Plus, Edit, Trash2, Search, Calendar, ShoppingCart, Minus, FileText, CheckCircle, XCircle, Loader2, Bell } from 'lucide-react';
+import { BarChart3, Package, DollarSign, TrendingUp, AlertTriangle, Users, LogOut, Menu, X, Plus, Edit, Trash2, Search, Calendar, ShoppingCart, Minus, FileText, CheckCircle, XCircle, Loader2, Bell, RotateCw, ChevronsUpDown, ChevronUp, ChevronDown } from 'lucide-react';
 import api from './api';
 
 const StatusContext = React.createContext();
@@ -486,14 +486,25 @@ function Inventory({ setNotifications, user }) {
   const [totalItems, setTotalItems] = useState(0);
   const [loading, setLoading] = useState(true);
   const itemsPerPage = 9; // Define how many items per page
+  const [statusFilter, setStatusFilter] = useState('active');
   const [itemToDelete, setItemToDelete] = useState(null);
+  const [itemToRestore, setItemToRestore] = useState(null);
+  const [sortConfig, setSortConfig] = useState({ key: 'created_at', direction: 'desc' });
 
   const showStatus = React.useContext(StatusContext);
 
   const fetchItems = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await api.getItems({ search, page: currentPage, limit: itemsPerPage });
+      const params = {
+        search,
+        page: currentPage,
+        limit: itemsPerPage,
+        status: statusFilter,
+        sortBy: sortConfig.key,
+        sortOrder: sortConfig.direction,
+      };
+      const data = await api.getItems(params);
       setItems(data.items);
       setTotalItems(data.total);
     } catch (error) {
@@ -501,7 +512,7 @@ function Inventory({ setNotifications, user }) {
       showStatus('error', "Failed to fetch items.");
     }
     setLoading(false);
-  }, [search, currentPage, showStatus]); // fetchItems depends on 'search' and 'currentPage'
+  }, [search, currentPage, showStatus, statusFilter, sortConfig]); // fetchItems depends on 'search' and 'currentPage'
 
   useEffect(() => {
     fetchItems();
@@ -559,6 +570,44 @@ function Inventory({ setNotifications, user }) {
     }
   };
 
+  const handleRestore = async (itemId) => {
+    const itemToRestore = items.find(i => i.item_id === itemId);
+    try {
+      await api.restoreItem(itemId);
+      setItemToRestore(null); // Close modal
+      fetchItems(); // Refresh list
+      setNotifications(prev => [{
+        id: `restore-item-${itemId}-${Date.now()}`,
+        message: `${user.full_name} restored item: ${itemToRestore.name}.`,
+        type: 'item_restore',
+        read: false,
+        createdAt: new Date().toISOString(),
+      }, ...prev]);
+      showStatus('success', 'Item restored successfully.');
+    } catch (error) {
+      console.error("Failed to restore item", error);
+      showStatus('error', `Error: ${error.message}`);
+    }
+  };
+
+  const requestSort = (key) => {
+    let direction = 'asc';
+    if (sortConfig.key === key && sortConfig.direction === 'asc') {
+      direction = 'desc';
+    }
+    setSortConfig({ key, direction });
+  };
+
+  const getSortIcon = (key) => {
+    if (sortConfig.key !== key) {
+      return <ChevronsUpDown className="w-4 h-4 ml-1 text-gray-400" />;
+    }
+    if (sortConfig.direction === 'asc') {
+      return <ChevronUp className="w-4 h-4 ml-1" />;
+    }
+    return <ChevronDown className="w-4 h-4 ml-1" />;
+  };
+
   const totalPages = Math.ceil(totalItems / itemsPerPage);
 
 
@@ -579,7 +628,25 @@ function Inventory({ setNotifications, user }) {
       </div>
 
       <div className="bg-white rounded-lg shadow">
-        <div className="p-4 border-b border-gray-200">
+        <div className="flex justify-between items-center p-4 border-b border-gray-200">
+          <div className="flex border border-gray-300 rounded-lg p-1 bg-gray-50">
+            {['active', 'inactive', 'all'].map(status => (
+              <button
+                key={status}
+                onClick={() => {
+                  setStatusFilter(status);
+                  setCurrentPage(1); // Reset to first page on filter change
+                }}
+                className={`px-3 py-1 text-sm font-semibold rounded-md transition-colors ${
+                  statusFilter === status
+                    ? 'bg-white text-indigo-600 shadow-sm'
+                    : 'text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                {status.charAt(0).toUpperCase() + status.slice(1)}
+              </button>
+            ))}
+          </div>
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
             <input
@@ -596,12 +663,27 @@ function Inventory({ setNotifications, user }) {
           <table className="w-full">
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Item #</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Name</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Category</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Stock</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Price</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Actions</th>
+                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">
+                  <button onClick={() => requestSort('item_number')} className="flex items-center">Item # {getSortIcon('item_number')}</button>
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">
+                  <button onClick={() => requestSort('name')} className="flex items-center">Name {getSortIcon('name')}</button>
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">
+                  <button onClick={() => requestSort('category')} className="flex items-center">Category {getSortIcon('category')}</button>
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">
+                  <button onClick={() => requestSort('qty_in_stock')} className="flex items-center">Stock {getSortIcon('qty_in_stock')}</button>
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">
+                  <button onClick={() => requestSort('selling_price')} className="flex items-center">Price {getSortIcon('selling_price')}</button>
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">
+                  <button onClick={() => requestSort('created_at')} className="flex items-center">Date Added {getSortIcon('created_at')}</button>
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">
+                  Actions
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
@@ -623,6 +705,7 @@ function Inventory({ setNotifications, user }) {
                       </span> 
                     </td>
                     <td className="px-6 py-4 text-sm font-semibold text-gray-800">PHP {parseFloat(item.selling_price || 0).toFixed(2)}</td>
+                    <td className="px-6 py-4 text-sm text-gray-600">{new Date(item.created_at).toLocaleDateString()}</td>
                     <td className="px-6 py-4 text-sm">
                       <div className="flex gap-2">
                         <button
@@ -634,18 +717,27 @@ function Inventory({ setNotifications, user }) {
                         >
                           <Edit className="w-4 h-4" />
                         </button>
-                        <button
-                          onClick={() => setItemToDelete(item)}
-                          className="p-1 text-red-600 hover:bg-red-50 rounded"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                        {item.status === 'active' ? (
+                          <button
+                            onClick={() => setItemToDelete(item)}
+                            className="p-1 text-red-600 hover:bg-red-50 rounded"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => setItemToRestore(item)}
+                            className="p-1 text-green-600 hover:bg-green-50 rounded"
+                          >
+                            <RotateCw className="w-4 h-4" />
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>
                 ))
               ) : (
-                <tr><td colSpan="6" className="text-center py-4">No items found.</td></tr>
+                <tr><td colSpan="7" className="text-center py-4">No items found.</td></tr>
               )}
             </tbody>
           </table>
@@ -732,6 +824,33 @@ function Inventory({ setNotifications, user }) {
                   className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-semibold transition-colors"
                 >
                   Delete
+                </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {itemToRestore && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full animate-in fade-in-0 zoom-in-95">
+            <div className="p-6 text-center">
+              <RotateCw className="w-16 h-16 mx-auto text-green-500" />
+              <h3 className="mt-4 text-xl font-bold text-gray-800">Restore Item?</h3>
+              <p className="mt-2 text-gray-600">
+                Are you sure you want to restore{' '}
+                <span className="font-semibold">{itemToRestore.name}</span>? It will become active and available for new sales again.
+              </p>
+            </div>
+            <div className="bg-gray-50 px-6 py-4 flex justify-end gap-3 rounded-b-lg">
+                <button
+                  onClick={() => setItemToRestore(null)}
+                  className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-100 font-semibold text-gray-700 transition-colors">
+                  Cancel
+                </button>
+                <button
+                  onClick={() => handleRestore(itemToRestore.item_id)}
+                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-semibold transition-colors">
+                  Restore
                 </button>
             </div>
           </div>
