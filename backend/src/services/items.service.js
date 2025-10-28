@@ -39,8 +39,9 @@ const getItems = async ({ page = 1, limit = 20, search, status, lowStock, sortBy
   } // if status is 'all', we don't add a WHERE clause for it
 
   if (lowStock === 'true') {
-    query += ' AND qty_in_stock <= reorder_level';
-    countQuery += ' AND qty_in_stock <= reorder_level';
+    const lowStockQuery = ' AND qty_in_stock <= reorder_level';
+    query += lowStockQuery;
+    countQuery += lowStockQuery;
   }
 
   // Whitelist columns for sorting to prevent SQL injection

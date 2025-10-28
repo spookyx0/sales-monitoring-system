@@ -53,6 +53,10 @@ const getOverview = async () => {
     db.query(`SELECT DATE(created_at) as day, COUNT(*) as value FROM items WHERE created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY) GROUP BY day ORDER BY day ASC`),
     // Expenses Trend (last 30 days)
     db.query(`SELECT date as day, SUM(amount) as value FROM expenses WHERE date >= DATE_SUB(NOW(), INTERVAL 30 DAY) GROUP BY day ORDER BY day ASC`),
+    // Total Stock Quantity
+    db.query("SELECT COALESCE(SUM(qty_in_stock), 0) as value FROM items WHERE status = 'active'"),
+    // Top Stock Items
+    db.query("SELECT item_id, name, qty_in_stock FROM items WHERE status = 'active' ORDER BY qty_in_stock DESC LIMIT 5"),
   ];
 
   const [
@@ -70,6 +74,8 @@ const getOverview = async () => {
     [revenueTrend30DaysRaw],
     [newItemsTrend30DaysRaw],
     [expensesTrend30DaysRaw],
+    [[{ value: totalStock }]],
+    [topStockItems],
   ] = await Promise.all(queries);
 
   const calculatePercentageChange = (current, previous) => {
@@ -105,6 +111,11 @@ const getOverview = async () => {
         change: calculatePercentageChange(monthExpenses, prevMonthExpenses),
         trend: expensesTrend30Days,
       },
+      totalStock: {
+        value: parseInt(totalStock) || 0,
+        change: null, // Not easily calculable without historical data
+        trend: [],
+      },
     },
     trends: {
       months: revenueData.map(r => r.month),
@@ -113,6 +124,7 @@ const getOverview = async () => {
       newItems: newItemsData.map(i => i.total),
     },
     topItems,
+    topStockItems,
   };
 };
 
