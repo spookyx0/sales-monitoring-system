@@ -371,12 +371,12 @@ function Dashboard({ onNavigate }) {
           color="purple"
         />
         <StatCard
-          title="Low Stock Items"
-          value={data.stats.lowStockCount.value}
-          onClick={() => onNavigate('inventory', { lowStock: true })}
-          trendData={data.stats.lowStockCount.trend}
-          icon={AlertTriangle}
-          color="red"
+          title="Earnings Today"
+          value={`PHP ${data.stats.todayEarnings.value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+          change={null}
+          trendData={data.stats.todayEarnings.trend}
+          icon={DollarSign}
+          color="green"
         />
       </div>
 
@@ -397,6 +397,14 @@ function Dashboard({ onNavigate }) {
           trendData={data.stats.totalStock.trend}
           icon={Package}
           color="purple"
+        />
+        <StatCard
+          title="Low Stock Items"
+          value={data.stats.lowStockCount.value}
+          onClick={() => onNavigate('inventory', { lowStock: true })}
+          trendData={data.stats.lowStockCount.trend}
+          icon={AlertTriangle}
+          color="red"
         />
       </div>
 

@@ -57,6 +57,8 @@ const getOverview = async () => {
     db.query("SELECT COALESCE(SUM(qty_in_stock), 0) as value FROM items WHERE status = 'active'"),
     // Top Stock Items
     db.query("SELECT item_id, name, qty_in_stock FROM items WHERE status = 'active' ORDER BY qty_in_stock DESC LIMIT 5"),
+    // Earnings Today
+    db.query("SELECT COALESCE(SUM(total_amount), 0) as value FROM sales WHERE DATE(created_at) = CURDATE()"),
   ];
 
   const [
@@ -76,6 +78,7 @@ const getOverview = async () => {
     [expensesTrend30DaysRaw],
     [[{ value: totalStock }]],
     [topStockItems],
+    [[{ value: todayEarnings }]],
   ] = await Promise.all(queries);
 
   const calculatePercentageChange = (current, previous) => {
@@ -114,6 +117,11 @@ const getOverview = async () => {
       totalStock: {
         value: parseInt(totalStock) || 0,
         change: null, // Not easily calculable without historical data
+        trend: [],
+      },
+      todayEarnings: {
+        value: parseFloat(todayEarnings) || 0,
+        change: null,
         trend: [],
       },
     },
