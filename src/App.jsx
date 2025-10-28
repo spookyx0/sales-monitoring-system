@@ -1001,146 +1001,298 @@ function Inventory({ setNotifications, user }) {
 }
 
 function Analytics() {
-  const [inputDateRange, setInputDateRange] = useState({ start: '', end: '' });
-  const [appliedDateRange, setAppliedDateRange] = useState({ start: '', end: '' });
+  const [timePeriod, setTimePeriod] = useState('monthly'); // daily, weekly, monthly, yearly
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const showStatus = React.useContext(StatusContext);
+  const [hoveredIndex, setHoveredIndex] = useState(null);
+  const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
 
   useEffect(() => {
-    setLoading(true);
-    const fetchAnalyticsData = async () => {
+    const getPeriodDateRange = () => {
+      const now = new Date();
+      if (timePeriod === 'daily') {
+        return { start: new Date(now.setHours(0, 0, 0, 0)) };
+      }
+      if (timePeriod === 'weekly') {
+        const firstDay = new Date(now.setDate(now.getDate() - now.getDay()));
+        return { start: new Date(firstDay.setHours(0, 0, 0, 0)) };
+      }
+      if (timePeriod === 'monthly') {
+        return { start: new Date(now.getFullYear(), now.getMonth(), 1) };
+      }
+      if (timePeriod === 'yearly') {
+        return { start: new Date(now.getFullYear(), 0, 1) };
+      }
+      return { start: new Date(now.getFullYear(), 0, 1) }; // Default to yearly
+    };
+
+    const fetchAnalyticsData = async () => { // eslint-disable-line react-hooks/exhaustive-deps
+      setLoading(true);
       try {
-        const [salesData, expensesData] = await Promise.all([
-          api.getSales({ limit: 1000, ...appliedDateRange }),
-          api.getExpenses({ limit: 1000, ...appliedDateRange })
+        const now = new Date();
+        const yearStart = new Date(now.getFullYear(), 0, 1).toISOString().split('T')[0];
+        const periodRange = getPeriodDateRange();
+
+        const allTimeStartDate = new Date(2024, 0, 1).toISOString().split('T')[0];
+        const [allSales, allExpenses] = await Promise.all([
+          api.getSales({ limit: 10000, start_date: allTimeStartDate }),
+          api.getExpenses({ limit: 10000, start_date: allTimeStartDate }),
         ]);
 
-        const monthRevenue = salesData.sales.reduce((sum, sale) => sum + parseFloat(sale.total_amount), 0);
-        const monthExpenses = expensesData.expenses.reduce((sum, expense) => sum + parseFloat(expense.amount), 0);
+        const periodSales = allSales.sales.filter(s => new Date(s.created_at) >= periodRange.start);
+        const periodExpenses = allExpenses.expenses.filter(e => new Date(e.date) >= periodRange.start);
 
-        // Mocked trend data - a real implementation would require more complex backend logic
-        const revenueTrend = [12000, 19000, 3000, 5000, 2000, 3000].map(v => v * (Math.random() + 0.5));
-        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'];
+        const totalRevenue = periodSales.reduce((sum, s) => sum + parseFloat(s.total_amount), 0);
+        const totalExpenses = periodExpenses.reduce((sum, e) => sum + parseFloat(e.amount), 0);
 
-        const topItems = salesData.sales
+        const getWeekOfMonth = (date) => {
+          const start = new Date(date.getFullYear(), date.getMonth(), 1);
+          const day = date.getDate() + start.getDay() - 1;
+          return Math.ceil(day / 7);
+        }
+
+        const topSellingProducts = periodSales
           .flatMap(s => s.items)
           .reduce((acc, item) => {
             const existing = acc.find(i => i.name === item.name);
             if (existing) {
-              existing.qty += item.quantity;
+              existing.total_quantity += item.quantity;
             } else {
-              acc.push({ name: item.name, qty: item.quantity });
+              acc.push({ name: item.name, total_quantity: item.quantity });
             }
             return acc;
           }, [])
-          .sort((a, b) => b.qty - a.qty)
+          .sort((a, b) => b.total_quantity - a.total_quantity)
           .slice(0, 5);
 
+        // Process sales trend data
+        const salesByPeriod = allSales.sales.reduce((acc, sale) => {
+          const date = new Date(sale.created_at);
+          const key = date.toISOString().split('T')[0];
+          acc[key] = (acc[key] || 0) + parseFloat(sale.total_amount);
+          return acc;
+        }, {});
+
+        let trendLabels = [];
+        let trendDataPoints = [];
+        const currentYear = now.getFullYear();
+        const currentMonth = selectedMonth;
+
+        if (timePeriod === 'daily') {
+          const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+          for (let day = 1; day <= daysInMonth; day++) {
+            trendLabels.push(`Day ${day}`);
+            const dateKey = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+            trendDataPoints.push(salesByPeriod[dateKey] || 0);
+          }
+        } else if (timePeriod === 'weekly') {
+          const weeksInMonth = Math.ceil(new Date(currentYear, currentMonth + 1, 0).getDate() / 7);
+          const weeklySales = {};
+          for (const dateStr in salesByPeriod) {
+            const date = new Date(dateStr + 'T00:00:00');
+            if (date.getFullYear() === currentYear && date.getMonth() === currentMonth) {
+              const week = getWeekOfMonth(date);
+              weeklySales[week] = (weeklySales[week] || 0) + salesByPeriod[dateStr];
+            }
+          }
+          for (let week = 1; week <= 5; week++) {
+            trendLabels.push(`Week ${week}`);
+            trendDataPoints.push(weeklySales[week] || 0);
+          }
+        } else if (timePeriod === 'monthly') {
+          const monthlySales = {};
+          for (const dateStr in salesByPeriod) {
+            const date = new Date(dateStr + 'T00:00:00');
+            if (date.getFullYear() === currentYear) {
+              const month = date.getMonth();
+              monthlySales[month] = (monthlySales[month] || 0) + salesByPeriod[dateStr];
+            }
+          }
+          for (let month = 0; month < 12; month++) {
+            trendLabels.push(new Date(currentYear, month).toLocaleString('default', { month: 'short' }));
+            trendDataPoints.push(monthlySales[month] || 0);
+          }
+        } else if (timePeriod === 'yearly') {
+          const yearlySales = {};
+          for (const dateStr in salesByPeriod) {
+            const year = new Date(dateStr + 'T00:00:00').getFullYear();
+            yearlySales[year] = (yearlySales[year] || 0) + salesByPeriod[dateStr];
+          }
+          for (let year = 2024; year <= currentYear; year++) {
+            trendLabels.push(String(year));
+            trendDataPoints.push(yearlySales[year] || 0);
+          }
+        }
+
+        const salesTrend = {
+          labels: trendLabels,
+          data: trendDataPoints,
+        };
+
         setData({
-          monthRevenue,
-          monthExpenses,
-          revenue: revenueTrend,
-          months,
-          topItems
+          totalRevenue,
+          totalExpenses,
+          topSellingProducts,
+          salesTrend,
         });
+
       } catch (error) {
         console.error("Failed to fetch analytics data", error);
+        showStatus('error', 'Could not load analytics data.');
       } finally {
         setLoading(false);
       }
     };
     fetchAnalyticsData();
-  }, [appliedDateRange]);
-
-  const handleApplyFilter = () => {
-    setAppliedDateRange(inputDateRange);
-  };
+  }, [timePeriod, showStatus, selectedMonth]);
 
   if (loading) return <div>Loading analytics...</div>;
   if (!data) return <div>Could not load analytics data.</div>;
+
+  const trendData = data.salesTrend || { labels: [], data: [] };
+  const maxTrendValue = Math.max(...trendData.data, 1);
 
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <h2 className="text-2xl font-bold text-gray-800">Analytics & Reports</h2>
-        <div className="flex items-center gap-2">
-          <Calendar className="w-5 h-5 text-gray-400" />
-          <input
-            type="date"
-            value={inputDateRange.start}
-            onChange={(e) => setInputDateRange({ ...inputDateRange, start: e.target.value })}
-            className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
-          />
-          <span className="text-gray-500">to</span>
-          <input
-            type="date"
-            value={inputDateRange.end}
-            onChange={(e) => setInputDateRange({ ...inputDateRange, end: e.target.value })}
-            className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
-          />
-          <button
-            onClick={handleApplyFilter}
-            className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition text-sm font-semibold"
-          >
-            Apply
-          </button>
+        <div className="flex border border-gray-300 rounded-lg p-1 bg-gray-50">
+          {['daily', 'weekly', 'monthly', 'yearly'].map(period => (
+            <button
+              key={period}
+              onClick={() => setTimePeriod(period)}
+              className={`px-3 py-1 text-sm font-semibold rounded-md transition-colors ${
+                timePeriod === period
+                  ? 'bg-white text-indigo-600 shadow-sm'
+                  : 'text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              {period.charAt(0).toUpperCase() + period.slice(1)}
+            </button>
+          ))}
         </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="bg-white rounded-lg shadow p-6">
-          <div className="text-sm text-gray-600 mb-1">Total Revenue</div>
-          <div className="text-3xl font-bold text-green-600">PHP {data.monthRevenue.toLocaleString()}</div>
-          <div className="text-xs text-gray-500 mt-1">This month</div>
+          <div className="text-sm text-gray-600 mb-1">Total Revenue ({timePeriod.charAt(0).toUpperCase() + timePeriod.slice(1)})</div>
+          <div className="text-3xl font-bold text-green-600">PHP {data.totalRevenue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
         </div>
         <div className="bg-white rounded-lg shadow p-6">
-          <div className="text-sm text-gray-600 mb-1">Total Expenses</div>
-          <div className="text-3xl font-bold text-red-600">PHP {data.monthExpenses.toLocaleString()}</div>
-          <div className="text-xs text-gray-500 mt-1">This month</div>
+          <div className="text-sm text-gray-600 mb-1">Total Expenses ({timePeriod.charAt(0).toUpperCase() + timePeriod.slice(1)})</div>
+          <div className="text-3xl font-bold text-red-600">PHP {data.totalExpenses.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
         </div>
         <div className="bg-white rounded-lg shadow p-6">
-          <div className="text-sm text-gray-600 mb-1">Net Profit</div>
+           <div className="text-sm text-gray-600 mb-1">Net Profit ({timePeriod.charAt(0).toUpperCase() + timePeriod.slice(1)})</div>
           <div className="text-3xl font-bold text-indigo-600">
-            PHP {(data.monthRevenue - data.monthExpenses).toLocaleString()}
+            PHP {(data.totalRevenue - data.totalExpenses).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </div>
-          <div className="text-xs text-gray-500 mt-1">This month</div>
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="bg-white rounded-lg shadow p-6">
-          <h3 className="text-lg font-semibold mb-4">Revenue Trend (6 Months)</h3>
-          <div className="h-64 flex items-end justify-between gap-3">
-            {data.revenue.map((val, i) => (
-              <div key={i} className="flex-1 flex flex-col items-center gap-2"> 
-                <div className="text-xs font-semibold text-gray-700">PHP {(val/1000).toFixed(1)}k</div>
-                <div
-                  className="w-full bg-gradient-to-t from-indigo-500 to-indigo-400 rounded-t shadow-sm"
-                  style={{ height: `${(val / Math.max(...data.revenue)) * 80}%` }}
-                />
-                <span className="text-xs text-gray-600 font-medium">{data.months[i]}</span>
-              </div>
-            ))}
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-lg font-semibold">Sales Trend ({timePeriod.charAt(0).toUpperCase() + timePeriod.slice(1)} View)</h3>
+            {(timePeriod === 'daily' || timePeriod === 'weekly') && (
+              <select
+                value={selectedMonth}
+                onChange={(e) => setSelectedMonth(parseInt(e.target.value))}
+                className="px-3 py-1 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500"
+              >
+                {Array.from({ length: 12 }).map((_, i) => (
+                  <option key={i} value={i}>{new Date(0, i).toLocaleString('default', { month: 'long' })}</option>
+                ))}
+              </select>
+            )}
+          </div>
+          <div className="h-64 relative flex pt-4" onMouseLeave={() => setHoveredIndex(null)}>
+            <div className="w-12 flex flex-col justify-between text-xs text-gray-500 text-left">
+              <span>PHP {maxTrendValue.toLocaleString()}</span>
+              <span>PHP {(maxTrendValue / 2).toLocaleString()}</span>
+              <span>PHP 0</span>
+            </div>
+            <div className="flex-grow h-full relative">
+            {trendData.data.length > 0 ? (
+              <>
+                <svg className="w-full h-full" preserveAspectRatio="none" viewBox="0 0 500 200" >
+                  <defs>
+                    <linearGradient id="salesGradient" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#818cf8" stopOpacity={0.3} />
+                      <stop offset="100%" stopColor="#818cf8" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <polygon
+                    fill="url(#salesGradient)"
+                    points={`0,200 ${trendData.data.map((d, i) => `${(i / (trendData.data.length - 1 || 1)) * 500},${200 - (d / maxTrendValue) * 180}`).join(' ')} 500,200`}
+                  />
+                  <polyline
+                    fill="none" stroke="#4f46e5" strokeWidth="2"
+                    points={trendData.data.map((d, i) => `${(i / (trendData.data.length - 1 || 1)) * 500},${200 - (d / maxTrendValue) * 180}`).join(' ')}
+                  />
+                  {trendData.data.map((d, i) => (
+                    <circle
+                      key={i}
+                      cx={(i / (trendData.data.length - 1 || 1)) * 500}
+                      cy={200 - (d / maxTrendValue) * 180}
+                      r="8"
+                      fill="transparent"
+                      onMouseEnter={() => setHoveredIndex(i)}
+                    />
+                  ))}
+                  {hoveredIndex !== null && (
+                    <>
+                      <line
+                        x1={(hoveredIndex / (trendData.data.length - 1 || 1)) * 500}
+                        y1="0"
+                        x2={(hoveredIndex / (trendData.data.length - 1 || 1)) * 500}
+                        y2="200"
+                        stroke="#9ca3af"
+                        strokeWidth="1"
+                        strokeDasharray="4"
+                      />
+                      <circle
+                        cx={(hoveredIndex / (trendData.data.length - 1 || 1)) * 500}
+                        cy={200 - (trendData.data[hoveredIndex] / maxTrendValue) * 180}
+                        r="4"
+                        fill="#4f46e5"
+                      />
+                      <foreignObject x={(hoveredIndex / (trendData.data.length - 1 || 1)) * 500 - 50} y={200 - (trendData.data[hoveredIndex] / maxTrendValue) * 180 - 60} width="100" height="50">
+                        <div className="bg-gray-800 text-white text-xs rounded-md p-2 text-center shadow-lg">
+                          <div>{trendData.labels[hoveredIndex]}</div>
+                          <div className="font-bold">PHP {trendData.data[hoveredIndex].toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+                        </div>
+                      </foreignObject>
+                    </>
+                  )}
+                </svg>
+                <div className="absolute bottom-0 left-0 right-0 flex justify-between text-xs text-gray-500 px-2">
+                  {trendData.labels.map((label, i) => (trendData.labels.length < 15 || i % Math.floor(trendData.labels.length / 10) === 0) && <span key={i}>{label}</span>)}
+                </div>
+              </>
+            ) : <p className="text-center text-gray-500 pt-20">No sales trend data for this period.</p>}
+            </div>
           </div>
         </div>
 
         <div className="bg-white rounded-lg shadow p-6">
-          <h3 className="text-lg font-semibold mb-4">Top Products by Sales Volume</h3>
+          <h3 className="text-lg font-semibold mb-4">Top Products by Sales Volume ({timePeriod.charAt(0).toUpperCase() + timePeriod.slice(1)})</h3>
           <div className="space-y-4">
-            {data.topItems.map((item, i) => (
+            {data.topSellingProducts.length > 0 ? data.topSellingProducts.map((item, i) => (
               <div key={i}>
                 <div className="flex items-center justify-between mb-1">
                   <span className="text-sm font-medium text-gray-700">{item.name}</span>
-                  <span className="text-sm font-bold text-gray-800">{item.qty} units</span>
+                  <span className="text-sm font-bold text-gray-800">{item.total_quantity} units</span>
                 </div>
                 <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
                   <div
                     className="h-full bg-indigo-500 rounded-full transition-all duration-300"
-                    style={{ width: `${(item.qty / data.topItems[0].qty) * 100}%` }}
+                    style={{ width: `${(item.total_quantity / data.topSellingProducts[0].total_quantity) * 100}%` }}
                   />
                 </div>
               </div>
-            ))}
+            )) : <p className="text-center text-gray-500 py-8">No sales data for this period yet.</p>}
           </div>
         </div>
       </div>
