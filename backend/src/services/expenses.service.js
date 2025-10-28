@@ -65,4 +65,12 @@ const getExpenseById = async (id) => {
   return expense;
 };
 
-module.exports = { createExpense, getExpenses, updateExpense, getExpenseById };
+const deleteExpense = async (id) => {
+  const [result] = await db.query('DELETE FROM expenses WHERE expense_id = ?', [id]);
+  if (result.affectedRows === 0) {
+    throw new Error('Expense not found');
+  }
+  return { success: true, message: 'Expense deleted successfully' };
+};
+
+module.exports = { createExpense, getExpenses, updateExpense, getExpenseById, deleteExpense };

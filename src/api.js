@@ -131,6 +131,16 @@ const api = {
     });
     return handleResponse(response);
   },
+  deleteExpense: async (id) => {
+    const response = await fetch(`${API_URL}/expenses/${id}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders(),
+    });
+    if (!response.ok) {
+      return handleResponse(response);
+    }
+    return { success: true };
+  },
 };
 
 export default api;

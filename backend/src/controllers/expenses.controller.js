@@ -1,5 +1,6 @@
 const expensesService = require('../services/expenses.service');
 const auditsService = require('../services/audits.service');
+const createError = require('http-errors');
 
 const createExpense = async (req, res, next) => {
   try {
@@ -32,5 +33,25 @@ const updateExpense = async (req, res, next) => {
   }
 };
 
+const deleteExpense = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    if (!id) {
+      return next(createError(400, 'Expense ID is required'));
+    }
+    
+    await expensesService.deleteExpense(id);
+    
+    // Use 204 No Content for successful deletions as it's a best practice
+    res.status(204).send();
+  } catch (error) {
+    // If the service throws a "not found" error, convert it to a 404
+    if (error.message.includes('not found')) {
+      return next(createError(404, error.message));
+    }
+    next(error);
+  }
+};
 
-module.exports = { createExpense, getExpenses, updateExpense };
+
+module.exports = { createExpense, getExpenses, updateExpense, deleteExpense };

@@ -715,8 +715,9 @@ function Inventory({ setNotifications, user }) {
               <AlertTriangle className="w-16 h-16 mx-auto text-red-500" />
               <h3 className="mt-4 text-xl font-bold text-gray-800">Delete Item?</h3>
               <p className="mt-2 text-gray-600">
-                Are you sure you want to delete{' '}
-                <span className="font-semibold">{itemToDelete.name}</span>? This action cannot be undone.
+                Are you sure you want to make{' '}
+                <span className="font-semibold">{itemToDelete.name}</span> inactive? It will no longer be available for new sales,
+                but will remain in historical records.
               </p>
             </div>
             <div className="bg-gray-50 px-6 py-4 flex justify-end gap-3 rounded-b-lg">
@@ -1068,6 +1069,7 @@ function Expenses({ setNotifications, user }) {
   const [form, setForm] = useState({ date: '', category: '', amount: '', notes: '' });
   const [formErrors, setFormErrors] = useState({});
   const [search, setSearch] = useState('');
+  const [expenseToDelete, setExpenseToDelete] = useState(null);
   const debouncedSearch = useDebounce(search, 300);
   const expensesPerPage = 8;
   const showStatus = React.useContext(StatusContext);
@@ -1169,6 +1171,25 @@ function Expenses({ setNotifications, user }) {
     }
   };
 
+  const handleDelete = async (expenseId) => {
+    const expense = expenses.find(e => e.expense_id === expenseId);
+    try {
+      await api.deleteExpense(expenseId);
+      setExpenseToDelete(null);
+      fetchExpenses(); // Refresh list, which will also update total expenses
+      setNotifications(prev => [{
+        id: `delete-expense-${expenseId}-${Date.now()}`,
+        message: `${user.full_name} deleted an expense: ${expense.category} for PHP ${expense.amount}.`,
+        type: 'expense_delete',
+        read: false,
+        createdAt: new Date().toISOString(),
+      }, ...prev]);
+      showStatus('success', 'Expense deleted successfully.');
+    } catch (error) {
+      showStatus('error', `Error: ${error.message}`);
+    }
+  };
+
   const totalMonthExpenses = expenses.reduce((sum, exp) => sum + parseFloat(exp.amount), 0);
   const totalPages = Math.ceil(totalExpenses / expensesPerPage);
 
@@ -1228,12 +1249,19 @@ function Expenses({ setNotifications, user }) {
                   <td className="px-6 py-4 text-sm text-gray-600">{expense.notes}</td>
                   <td className="px-6 py-4 text-sm text-gray-600">{expense.username}</td>
                   <td className="px-6 py-4 text-sm">
-                    <button
-                      onClick={() => handleEditClick(expense)}
-                      className="p-1 text-indigo-600 hover:bg-indigo-50 rounded"
-                    >
-                      <Edit className="w-4 h-4" />
-                    </button>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => handleEditClick(expense)}
+                        className="p-1 text-indigo-600 hover:bg-indigo-50 rounded"
+                      >
+                        <Edit className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => setExpenseToDelete(expense)}
+                        className="p-1 text-red-600 hover:bg-red-50 rounded">
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -1360,6 +1388,34 @@ function Expenses({ setNotifications, user }) {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {expenseToDelete && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full animate-in fade-in-0 zoom-in-95">
+            <div className="p-6 text-center">
+              <AlertTriangle className="w-16 h-16 mx-auto text-red-500" />
+              <h3 className="mt-4 text-xl font-bold text-gray-800">Delete Expense?</h3>
+              <p className="mt-2 text-gray-600">
+                Are you sure you want to delete the expense for{' '}
+                <span className="font-semibold">{expenseToDelete.category}</span> amounting to{' '}
+                <span className="font-semibold">PHP {parseFloat(expenseToDelete.amount).toFixed(2)}</span>?
+              </p>
+            </div>
+            <div className="bg-gray-50 px-6 py-4 flex justify-end gap-3 rounded-b-lg">
+                <button
+                  onClick={() => setExpenseToDelete(null)}
+                  className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-100 font-semibold text-gray-700 transition-colors">
+                  Cancel
+                </button>
+                <button
+                  onClick={() => handleDelete(expenseToDelete.expense_id)}
+                  className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-semibold transition-colors">
+                  Delete
+                </button>
+            </div>
           </div>
         </div>
       )}

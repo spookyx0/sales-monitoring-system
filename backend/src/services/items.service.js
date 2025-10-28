@@ -26,12 +26,15 @@ const getItems = async ({ page = 1, limit = 20, search, status, lowStock }) => {
     countParams.push(`%${search}%`, `%${search}%`, `%${search}%`);
   }
 
-  if (status) {
+  if (status && status !== 'all') {
     query += ' AND status = ?';
     countQuery += ' AND status = ?';
     params.push(status);
     countParams.push(status);
-  }
+  } else if (!status) { // Default to 'active' if status is not provided
+    query += " AND status = 'active'";
+    countQuery += " AND status = 'active'";
+  } // if status is 'all', we don't add a WHERE clause for it
 
   if (lowStock === 'true') {
     query += ' AND qty_in_stock <= reorder_level';
@@ -79,7 +82,8 @@ const updateItem = async (id, itemData) => {
 };
 
 const deleteItem = async (id) => {
-  const [result] = await db.query('DELETE FROM items WHERE item_id = ?', [id]);
+  // Soft delete by setting status to 'inactive' instead of a hard delete
+  const [result] = await db.query("UPDATE items SET status = 'inactive' WHERE item_id = ?", [id]);
   if (result.affectedRows === 0) {
     throw createError(404, 'Item not found');
   }
