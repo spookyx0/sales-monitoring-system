@@ -6,6 +6,6 @@ const analyticsController = require('../controllers/analytics.controller');
 router.use(authenticateToken);
 
 router.get('/overview', analyticsController.getOverview);
-router.get('/monthly', analyticsController.getMonthly);
+router.get('/expense-stats', analyticsController.getExpenseStats);
 
 module.exports = router;

@@ -71,4 +71,29 @@ const getMonthly = async (year, month) => {
   };
 };
 
-module.exports = { getOverview, getMonthly };
+const getExpenseStats = async () => {
+  const [[{ today }]] = await db.query(
+    'SELECT COALESCE(SUM(amount), 0) as today FROM expenses WHERE date = CURDATE()'
+  );
+
+  const [[{ week }]] = await db.query(
+    'SELECT COALESCE(SUM(amount), 0) as week FROM expenses WHERE YEARWEEK(date, 1) = YEARWEEK(CURDATE(), 1)'
+  );
+
+  const [[{ month }]] = await db.query(
+    'SELECT COALESCE(SUM(amount), 0) as month FROM expenses WHERE YEAR(date) = YEAR(CURDATE()) AND MONTH(date) = MONTH(CURDATE())'
+  );
+
+  const [[{ year }]] = await db.query(
+    'SELECT COALESCE(SUM(amount), 0) as year FROM expenses WHERE YEAR(date) = YEAR(CURDATE())'
+  );
+
+  return {
+    today: parseFloat(today) || 0,
+    week: parseFloat(week) || 0,
+    month: parseFloat(month) || 0,
+    year: parseFloat(year) || 0,
+  };
+};
+
+module.exports = { getOverview, getMonthly, getExpenseStats };

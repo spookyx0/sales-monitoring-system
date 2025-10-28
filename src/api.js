@@ -48,6 +48,10 @@ const api = {
     const response = await fetch(`${API_URL}/analytics/revenue-trend?${query}`, { headers: getAuthHeaders() });
     return handleResponse(response);
   },
+  getExpenseStats: async () => {
+    const response = await fetch(`${API_URL}/analytics/expense-stats`, { headers: getAuthHeaders() });
+    return handleResponse(response);
+  },
 
   // --- Items ---
   getItems: async (params = {}) => {
@@ -146,7 +150,9 @@ const api = {
       method: 'DELETE',
       headers: getAuthHeaders(),
     });
-    if (!response.ok) {
+    // A 204 response means success but has no content to parse.
+    // We check for !response.ok AND status is not 204.
+    if (!response.ok && response.status !== 204) {
       return handleResponse(response);
     }
     return { success: true };

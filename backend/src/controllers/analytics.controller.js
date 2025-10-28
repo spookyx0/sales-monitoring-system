@@ -9,14 +9,16 @@ const getOverview = async (req, res, next) => {
   }
 };
 
-const getMonthly = async (req, res, next) => {
+const getExpenseStats = async (req, res, next) => {
   try {
-    const { year, month } = req.query;
-    const data = await analyticsService.getMonthly(year, month);
+    const data = await analyticsService.getExpenseStats();
     res.json({ success: true, data });
   } catch (err) {
     next(err);
   }
 };
 
-module.exports = { getOverview, getMonthly };
+module.exports = {
+  getOverview,
+  getExpenseStats,
+};

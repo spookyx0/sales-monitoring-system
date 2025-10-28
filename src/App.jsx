@@ -1181,6 +1181,7 @@ function Audits() {
 function Expenses({ setNotifications, user }) {
   const [expenses, setExpenses] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
+  const [expenseStats, setExpenseStats] = useState(null);
   const [totalExpenses, setTotalExpenses] = useState(0);
   const [showForm, setShowForm] = useState(false);
   const [editingExpense, setEditingExpense] = useState(null);
@@ -1204,9 +1205,20 @@ function Expenses({ setNotifications, user }) {
     }
   }, [currentPage, debouncedSearch, showStatus]);
 
+  const fetchStats = useCallback(async () => {
+    try {
+      const stats = await api.getExpenseStats();
+      setExpenseStats(stats);
+    } catch (err) {
+      console.error("Failed to fetch expense stats", err);
+      showStatus('error', 'Could not load expense statistics.');
+    }
+  }, [showStatus]);
+
   useEffect(() => {
     fetchExpenses();
-  }, [fetchExpenses]);
+    fetchStats();
+  }, [fetchExpenses, fetchStats]);
 
   const validateForm = () => {
     const errors = {};
@@ -1280,7 +1292,8 @@ function Expenses({ setNotifications, user }) {
           createdAt: new Date().toISOString(),
         }, ...prev]);
       }
-      await fetchExpenses(); // Refresh the list
+      fetchExpenses(); // Refresh the list of expenses
+      fetchStats(); // Refresh the statistics cards
       handleCloseModal();
       showStatus('success', successMessage);
     } catch (error) {
@@ -1295,7 +1308,8 @@ function Expenses({ setNotifications, user }) {
     try {
       await api.deleteExpense(expenseId);
       setExpenseToDelete(null);
-      fetchExpenses(); // Refresh list, which will also update total expenses
+      fetchExpenses(); // Refresh list
+      fetchStats(); // Refresh the statistics cards
       setNotifications(prev => [{
         id: `delete-expense-${expenseId}-${Date.now()}`,
         message: `${user.full_name} deleted an expense: ${expense.category} for PHP ${expense.amount}.`,
@@ -1309,8 +1323,7 @@ function Expenses({ setNotifications, user }) {
     }
   };
 
-  const totalMonthExpenses = expenses.reduce((sum, exp) => sum + parseFloat(exp.amount), 0);
-  const totalPages = Math.ceil(totalExpenses / expensesPerPage);
+    const totalPages = Math.ceil(totalExpenses / expensesPerPage);
 
   return (
     <div className="space-y-6">
@@ -1337,9 +1350,31 @@ function Expenses({ setNotifications, user }) {
         </div>
       </div>
 
-      <div className="bg-white rounded-lg shadow p-6">
-        <div className="text-sm text-gray-600 mb-1">Total Expenses (This Month)</div>
-        <div className="text-3xl font-bold text-red-600">PHP {totalMonthExpenses.toFixed(2)}</div>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="bg-white rounded-lg shadow p-5">
+          <div className="text-sm text-gray-600 mb-1">Today's Expenses</div>
+          <div className="text-2xl font-bold text-red-600">
+            {expenseStats ? `PHP ${expenseStats.today.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : <Loader2 className="w-6 h-6 animate-spin" />}
+          </div>
+        </div>
+        <div className="bg-white rounded-lg shadow p-5">
+          <div className="text-sm text-gray-600 mb-1">This Week's Expenses</div>
+          <div className="text-2xl font-bold text-red-600">
+            {expenseStats ? `PHP ${expenseStats.week.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : <Loader2 className="w-6 h-6 animate-spin" />}
+          </div>
+        </div>
+        <div className="bg-white rounded-lg shadow p-5">
+          <div className="text-sm text-gray-600 mb-1">This Month's Expenses</div>
+          <div className="text-2xl font-bold text-red-600">
+            {expenseStats ? `PHP ${expenseStats.month.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : <Loader2 className="w-6 h-6 animate-spin" />}
+          </div>
+        </div>
+        <div className="bg-white rounded-lg shadow p-5">
+          <div className="text-sm text-gray-600 mb-1">This Year's Expenses</div>
+          <div className="text-2xl font-bold text-red-600">
+            {expenseStats ? `PHP ${expenseStats.year.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : <Loader2 className="w-6 h-6 animate-spin" />}
+          </div>
+        </div>
       </div>
 
       <div className="bg-white rounded-lg shadow">

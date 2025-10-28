@@ -5,6 +5,7 @@ const itemsRoutes = require('./routes/items.routes');
 const salesRoutes = require('./routes/sales.routes');
 const auditsRoutes = require('./routes/audits.routes');
 const expensesRoutes = require('./routes/expenses.routes');
+const analyticsRoutes = require('./routes/analytics.routes');
 const errorHandler = require('./middleware/error.middleware');
 
 const app = express();
@@ -23,6 +24,7 @@ app.use('/api/items', itemsRoutes);
 app.use('/api/sales', salesRoutes);
 app.use('/api/audits', auditsRoutes);
 app.use('/api/expenses', expensesRoutes);
+app.use('/api/analytics', analyticsRoutes);
 
 // Root endpoint
 app.get('/', (req, res) => {
