@@ -331,6 +331,7 @@ function Topbar({ user, onToggleSidebar, notifications, setNotifications, onNavi
 function Dashboard({ onNavigate }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [showLowStockModal, setShowLowStockModal] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -401,12 +402,16 @@ function Dashboard({ onNavigate }) {
         <StatCard
           title="Low Stock Items"
           value={data.stats.lowStockCount.value}
-          onClick={() => onNavigate('inventory', { lowStock: true })}
+          onClick={() => setShowLowStockModal(true)}
           trendData={data.stats.lowStockCount.trend}
           icon={AlertTriangle}
           color="red"
         />
       </div>
+
+      {showLowStockModal && (
+        <LowStockModal onClose={() => setShowLowStockModal(false)} />
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <TrendChart data={data.trends} />
@@ -1804,6 +1809,91 @@ function StatusModal({ type, message, onClose }) {
   );
 }
 
+function LowStockModal({ onClose }) {
+  const [lowStockItems, setLowStockItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [editingItem, setEditingItem] = useState(null);
+  const showStatus = React.useContext(StatusContext);
+
+  const fetchLowStockItems = useCallback(async () => {
+    setLoading(true);
+    try {
+      const { items } = await api.getItems({ limit: 1000 });
+      const lowStock = items.filter(item => item.qty_in_stock <= item.reorder_level && item.status === 'active');
+      setLowStockItems(lowStock);
+    } catch (error) {
+      console.error("Failed to fetch low stock items", error);
+      showStatus('error', 'Could not load low stock items.');
+    } finally {
+      setLoading(false);
+    }
+  }, [showStatus]);
+
+  useEffect(() => {
+    fetchLowStockItems();
+  }, [fetchLowStockItems]);
+
+  const handleSave = async (itemId, formData) => {
+    try {
+      await api.updateItem(itemId, formData);
+      showStatus('success', 'Item stock updated successfully!');
+      setEditingItem(null);
+      fetchLowStockItems(); // Refresh the list
+    } catch (error) {
+      console.error("Failed to save item", error);
+      showStatus('error', `Error: ${error.message}`);
+    }
+  };
+
+  return (
+    <>
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+        <div className="bg-white rounded-lg shadow-xl w-full max-w-3xl max-h-[90vh] flex flex-col animate-in fade-in-0 zoom-in-95">
+          <div className="flex items-center justify-between p-6 border-b">
+            <h3 className="text-xl font-bold text-gray-800 flex items-center gap-2">
+              <AlertTriangle className="text-red-500" />
+              Low Stock Items
+            </h3>
+            <button onClick={onClose} className="p-1 rounded-full text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors">
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+          <div className="p-6 overflow-y-auto">
+            {loading ? (
+              <div className="text-center py-8">Loading items...</div>
+            ) : lowStockItems.length > 0 ? (
+              <table className="w-full">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-4 py-2 text-left text-xs font-semibold text-gray-600 uppercase">Item</th>
+                    <th className="px-4 py-2 text-left text-xs font-semibold text-gray-600 uppercase">Stock</th>
+                    <th className="px-4 py-2 text-left text-xs font-semibold text-gray-600 uppercase">Reorder At</th>
+                    <th className="px-4 py-2 text-left text-xs font-semibold text-gray-600 uppercase">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y">
+                  {lowStockItems.map(item => (
+                    <tr key={item.item_id}>
+                      <td className="px-4 py-3 text-sm font-medium">{item.name}</td>
+                      <td className="px-4 py-3 text-sm font-bold text-red-600">{item.qty_in_stock}</td>
+                      <td className="px-4 py-3 text-sm">{item.reorder_level}</td>
+                      <td className="px-4 py-3 text-sm">
+                        <button onClick={() => setEditingItem(item)} className="p-1 text-indigo-600 hover:bg-indigo-50 rounded"><Edit className="w-4 h-4" /></button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            ) : (
+              <p className="text-center text-gray-500 py-8">No items are currently low on stock.</p>
+            )}
+          </div>
+        </div>
+      </div>
+      {editingItem && <ItemFormModal item={editingItem} onClose={() => setEditingItem(null)} onSave={handleSave} />}
+    </>
+  );
+}
 
 export default App;
 

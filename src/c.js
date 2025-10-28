@@ -331,9 +331,10 @@ function Topbar({ user, onToggleSidebar, notifications, setNotifications, onNavi
 function Dashboard({ onNavigate }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [showLowStockModal, setShowLowStockModal] = useState(false);
 
-  useEffect(() => {
-    const fetchData = async () => {
+  const fetchData = useCallback(async () => {
+    setLoading(true);
       try {
         const overviewData = await api.getOverview();
         setData(overviewData);
@@ -342,8 +343,9 @@ function Dashboard({ onNavigate }) {
       } finally {
         setLoading(false);
       }
-    };
+  }, []);
 
+  useEffect(() => {
     fetchData();
   }, []); // This should call the new getOverview endpoint
 
@@ -372,7 +374,7 @@ function Dashboard({ onNavigate }) {
         <StatCard
           title="Low Stock Items"
           value={data.stats.lowStockCount.value}
-          onClick={() => onNavigate('inventory', { lowStock: true })}
+          onClick={() => setShowLowStockModal(true)}
           trendData={data.stats.lowStockCount.trend}
           icon={AlertTriangle}
           color="red"
@@ -404,6 +406,9 @@ function Dashboard({ onNavigate }) {
         <TopSellingItems items={data.topItems} onNavigate={onNavigate} />
         <TopStockItems items={data.topStockItems} onNavigate={onNavigate} />
       </div>
+      {showLowStockModal && (
+        <LowStockModal onClose={() => setShowLowStockModal(false)} onStockUpdated={fetchData} />
+      )}
     </div>
   );
 }
@@ -598,6 +603,146 @@ function TopStockItems({ items, onNavigate }) {
             </div>
           </div>
         ))}
+      </div>
+    </div>
+  );
+}
+
+function LowStockModal({ onClose, onStockUpdated }) {
+  const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [editingItem, setEditingItem] = useState(null);
+  const showStatus = React.useContext(StatusContext);
+
+  const fetchLowStockItems = useCallback(async () => {
+    setLoading(true);
+    try {
+      const data = await api.getItems({ lowStock: 'true', limit: 1000, status: 'active' });
+      setItems(data.items);
+    } catch (error) {
+      showStatus('error', 'Failed to load low stock items.');
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
+  }, [showStatus]);
+
+  useEffect(() => {
+    fetchLowStockItems();
+  }, [fetchLowStockItems]);
+
+  const handleStockAdded = () => {
+    setEditingItem(null);
+    fetchLowStockItems(); // Refresh the list in the modal
+    onStockUpdated(); // Refresh the dashboard data
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col animate-in fade-in-0 zoom-in-95">
+        <div className="flex items-center justify-between p-6 border-b">
+          <div className="flex items-center gap-3">
+            <AlertTriangle className="w-6 h-6 text-red-500" />
+            <h3 className="text-xl font-bold text-gray-800">Low Stock Items</h3>
+          </div>
+          <button onClick={onClose} className="p-1 rounded-full text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+        <div className="p-6 overflow-y-auto">
+          {loading ? (
+            <div className="text-center py-8"><Loader2 className="w-8 h-8 mx-auto animate-spin text-indigo-600" /></div>
+          ) : items.length > 0 ? (
+            <div className="space-y-3">
+              {items.map(item => (
+                <div key={item.item_id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border">
+                  <div>
+                    <div className="font-medium text-gray-800">{item.name}</div>
+                    <div className="text-sm text-red-600">
+                      <span className="font-semibold">{item.qty_in_stock}</span> in stock (Reorder at {item.reorder_level})
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setEditingItem(item)}
+                    className="flex items-center gap-2 px-3 py-1.5 bg-indigo-600 text-white text-sm font-semibold rounded-lg hover:bg-indigo-700 transition"
+                  >
+                    <Plus className="w-4 h-4" />
+                    Add Stock
+                  </button>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-center text-gray-500 py-8">No items are currently low on stock. Great job!</p>
+          )}
+        </div>
+        <div className="p-4 bg-gray-50 border-t flex justify-end">
+          <button onClick={onClose} className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-100 font-semibold text-gray-700 transition-colors">
+            Close
+          </button>
+        </div>
+      </div>
+      {editingItem && (
+        <AddStockModal item={editingItem} onClose={() => setEditingItem(null)} onStockAdded={handleStockAdded} />
+      )}
+    </div>
+  );
+}
+
+function AddStockModal({ item, onClose, onStockAdded }) {
+  const [quantity, setQuantity] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
+  const showStatus = React.useContext(StatusContext);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    const amountToAdd = parseInt(quantity, 10);
+    if (!amountToAdd || amountToAdd <= 0) {
+      showStatus('error', 'Please enter a valid positive quantity.');
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      const newStock = item.qty_in_stock + amountToAdd;
+      await api.updateItem(item.item_id, { qty_in_stock: newStock });
+      showStatus('success', `Added ${amountToAdd} to ${item.name}. New stock is ${newStock}.`);
+      onStockAdded();
+    } catch (error) {
+      showStatus('error', `Failed to add stock: ${error.message}`);
+      console.error(error);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 z-[60]">
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-sm animate-in fade-in-0 zoom-in-95">
+        <form onSubmit={handleSubmit}>
+          <div className="p-6">
+            <h3 className="text-lg font-bold text-gray-800">Add Stock for {item.name}</h3>
+            <p className="text-sm text-gray-500 mt-1">Current stock: {item.qty_in_stock}</p>
+            <div className="mt-4">
+              <label htmlFor="quantity" className="block text-sm font-medium text-gray-700 mb-1">Quantity to Add</label>
+              <input
+                id="quantity"
+                type="number"
+                value={quantity}
+                onChange={(e) => setQuantity(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                autoFocus
+                required
+              />
+            </div>
+          </div>
+          <div className="bg-gray-50 px-6 py-4 flex justify-end gap-3 rounded-b-lg">
+            <button type="button" onClick={onClose} className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-100 font-semibold text-gray-700 transition-colors">Cancel</button>
+            <button type="submit" disabled={isSaving} className="w-28 flex justify-center px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-semibold transition-colors disabled:opacity-50">
+              {isSaving ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Add Stock'}
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   );

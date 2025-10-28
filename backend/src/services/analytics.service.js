@@ -42,7 +42,7 @@ const getOverview = async () => {
     // Revenue Trend (last 6 months)
     db.query(`SELECT DATE_FORMAT(created_at, '%b') as month, SUM(total_amount) as revenue FROM sales WHERE created_at >= DATE_SUB(NOW(), INTERVAL 6 MONTH) GROUP BY month, YEAR(created_at), MONTH(created_at) ORDER BY YEAR(created_at), MONTH(created_at) ASC`),
     // Top Selling Items (current month)
-    db.query(`SELECT i.name, SUM(si.quantity) as qty FROM sale_items si LEFT JOIN items i ON si.item_id = i.item_id WHERE si.sale_id IN (SELECT sale_id FROM sales WHERE MONTH(created_at) = ? AND YEAR(created_at) = ?) GROUP BY si.item_id ORDER BY qty DESC LIMIT 5`, [currentMonth, currentYear]),
+    db.query(`SELECT i.item_id, i.name, SUM(si.quantity) as qty FROM sale_items si LEFT JOIN items i ON si.item_id = i.item_id WHERE si.sale_id IN (SELECT sale_id FROM sales WHERE MONTH(created_at) = ? AND YEAR(created_at) = ?) GROUP BY si.item_id ORDER BY qty DESC LIMIT 5`, [currentMonth, currentYear]),
     // Expense Trend (last 6 months)
     db.query(`SELECT DATE_FORMAT(date, '%b') as month, SUM(amount) as total FROM expenses WHERE date >= DATE_SUB(NOW(), INTERVAL 6 MONTH) GROUP BY month, YEAR(date), MONTH(date) ORDER BY YEAR(date), MONTH(date) ASC`),
     // New Items Trend (last 6 months)
