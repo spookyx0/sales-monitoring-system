@@ -43,6 +43,10 @@ const api = {
   },
 
   // --- Analytics ---
+  getOverview: async () => {
+    const response = await fetch(`${API_URL}/analytics/overview`, { headers: getAuthHeaders() });
+    return handleResponse(response);
+  },
   getRevenueTrend: async (params = {}) => {
     const query = new URLSearchParams(params).toString();
     const response = await fetch(`${API_URL}/analytics/revenue-trend?${query}`, { headers: getAuthHeaders() });

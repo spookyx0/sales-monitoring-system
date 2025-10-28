@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { BarChart3, Package, DollarSign, TrendingUp, AlertTriangle, Users, LogOut, Menu, X, Plus, Edit, Trash2, Search, Calendar, ShoppingCart, Minus, FileText, CheckCircle, XCircle, Loader2, Bell, RotateCw, ChevronsUpDown, ChevronUp, ChevronDown } from 'lucide-react';
+import { BarChart3, Package, DollarSign, TrendingUp, AlertTriangle, Users, LogOut, Menu, X, Plus, Edit, Trash2, Search, Calendar, ShoppingCart, Minus, FileText, CheckCircle, XCircle, Loader2, Bell, RotateCw, ChevronsUpDown, ChevronUp, ChevronDown, ArrowUp, ArrowDown } from 'lucide-react';
 import api from './api';
 
 const StatusContext = React.createContext();
@@ -7,11 +7,12 @@ const StatusContext = React.createContext();
 function App() {
   const [auth, setAuth] = useState(null);
   const [currentPage, setCurrentPage] = useState('dashboard');
+  const [pageState, setPageState] = useState({});
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [loading, setLoading] = useState(true);
   const [status, setStatus] = useState({ isOpen: false, type: '', message: '' });
   const [notifications, setNotifications] = useState([]);
-
+  
   const showStatus = useCallback((type, message) => {
     setStatus({ isOpen: true, type, message });
   }, []);
@@ -70,6 +71,13 @@ function App() {
     setAuth(null);
   };
 
+  const handleNavigate = (page, state) => {
+    if (state) {
+      setPageState(prev => ({ ...prev, [page]: state }));
+    }
+    setCurrentPage(page);
+  };
+
   useEffect(() => {
     if (auth) fetchNotifications();
   }, [auth, fetchNotifications]);
@@ -82,14 +90,14 @@ function App() {
         <LoginPage onLogin={handleLogin} />
       ) : (
         <div className="flex h-screen bg-gray-50">
-          <Sidebar open={sidebarOpen} currentPage={currentPage} onNavigate={setCurrentPage} onLogout={handleLogout} />
+          <Sidebar open={sidebarOpen} currentPage={currentPage} onNavigate={handleNavigate} onLogout={handleLogout} />
           
           <div className="flex-1 flex flex-col overflow-hidden">
-            <Topbar user={auth.admin} onToggleSidebar={() => setSidebarOpen(!sidebarOpen)} notifications={notifications} setNotifications={setNotifications} onNavigate={setCurrentPage} />
+            <Topbar user={auth.admin} onToggleSidebar={() => setSidebarOpen(!sidebarOpen)} notifications={notifications} setNotifications={setNotifications} onNavigate={handleNavigate} />
             
             <main className="flex-1 overflow-y-auto p-6">
-              {currentPage === 'dashboard' && <Dashboard />}
-              {currentPage === 'inventory' && <Inventory setNotifications={setNotifications} user={auth.admin} />}
+              {currentPage === 'dashboard' && <Dashboard onNavigate={handleNavigate} />}
+              {currentPage === 'inventory' && <Inventory setNotifications={setNotifications} user={auth.admin} initialState={pageState.inventory} />}
               {currentPage === 'sales' && <Sales setNotifications={setNotifications} user={auth.admin} />}
               {currentPage === 'analytics' && <Analytics />}
               {currentPage === 'audits' && <Audits />}
@@ -228,7 +236,7 @@ function Sidebar({ open, currentPage, onNavigate, onLogout }) {
   );
 }
 
-function Topbar({ user, onToggleSidebar, notifications, setNotifications, onNavigate }) {
+function Topbar({ user, onToggleSidebar, notifications, setNotifications, onNavigate, pageState }) {
   const [showNotifications, setShowNotifications] = useState(false);
   const unreadCount = notifications.filter(n => !n.read).length;
   const notificationsRef = useRef(null);
@@ -245,7 +253,7 @@ function Topbar({ user, onToggleSidebar, notifications, setNotifications, onNavi
 
   const handleNotificationClick = (notification) => {
     if (notification.type === 'low_stock') {
-      onNavigate('inventory');
+      onNavigate('inventory', { lowStock: true });
     }
     setNotifications(notifications.map(n => n.id === notification.id ? { ...n, read: true } : n));
     setShowNotifications(false);
@@ -320,59 +328,15 @@ function Topbar({ user, onToggleSidebar, notifications, setNotifications, onNavi
   );
 }
 
-function Dashboard() {
+function Dashboard({ onNavigate }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        setLoading(true);
-        const [salesData, itemsData, expensesData] = await Promise.all([
-          api.getSales({ limit: 1000 }), // Fetch recent sales
-          api.getItems({ limit: 1000 }), // Fetch all items for counts
-          api.getExpenses({ limit: 1000 }) // Fetch recent expenses
-        ]);
-
-        const now = new Date();
-        const currentMonth = now.getMonth();
-        const currentYear = now.getFullYear();
-
-        const monthRevenue = salesData.sales.reduce((sum, sale) => {
-          const saleDate = new Date(sale.created_at);
-          if (saleDate.getMonth() === currentMonth && saleDate.getFullYear() === currentYear) {
-            return sum + parseFloat(sale.total_amount);
-          }
-          return sum;
-        }, 0);
-
-        const monthExpenses = expensesData.expenses.reduce((sum, expense) => {
-            const expenseDate = new Date(expense.date);
-            if (expenseDate.getMonth() === currentMonth && expenseDate.getFullYear() === currentYear) {
-                return sum + parseFloat(expense.amount);
-            }
-            return sum;
-        }, 0);
-
-        const overview = {
-          monthRevenue,
-          totalItems: itemsData.total,
-          lowStockCount: itemsData.items.filter(i => i.qty_in_stock <= i.reorder_level).length,
-          monthExpenses,
-          revenue: [/* Mock data for trend, needs backend logic */ 12000, 19000, 3000, 5000, 2000, 3000],
-          months: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
-          topItems: salesData.sales.flatMap(s => s.items).reduce((acc, item) => {
-            const existing = acc.find(i => i.name === item.name);
-            if (existing) {
-              existing.qty += item.quantity;
-            } else {
-              acc.push({ name: item.name, qty: item.quantity });
-            }
-            return acc;
-          }, []).sort((a, b) => b.qty - a.qty).slice(0, 5)
-        };
-
-        setData(overview);
+        const overviewData = await api.getOverview();
+        setData(overviewData);
       } catch (error) {
         console.error("Failed to fetch dashboard data", error);
       } finally {
@@ -381,7 +345,7 @@ function Dashboard() {
     };
 
     fetchData();
-  }, []);
+  }, []); // This should call the new getOverview endpoint
 
   if (loading || !data) return <div>Loading...</div>;
 
@@ -392,71 +356,111 @@ function Dashboard() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
           title="Month Revenue"
-          value={`PHP ${data.monthRevenue.toLocaleString()}`}
+          value={`PHP ${data.stats.monthRevenue.value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+          change={data.stats.monthRevenue.change}
+          trendData={data.stats.monthRevenue.trend}
           icon={DollarSign}
           color="green"
         />
         <StatCard
           title="Total Items"
-          value={data.totalItems}
+          value={data.stats.totalItems.value}
+          change={data.stats.totalItems.change}
+          trendData={data.stats.totalItems.trend}
+          changeSuffix=" new this month"
           icon={Package}
           color="blue"
         />
         <StatCard
           title="Low Stock Items"
-          value={data.lowStockCount}
+          value={data.stats.lowStockCount.value}
+          trendData={data.stats.lowStockCount.trend}
           icon={AlertTriangle}
           color="red"
         />
         <StatCard
           title="Month Expenses"
-          value={`PHP ${data.monthExpenses.toLocaleString()}`}
+          value={`PHP ${data.stats.monthExpenses.value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+          change={data.stats.monthExpenses.change}
+          trendData={data.stats.monthExpenses.trend}
           icon={TrendingUp}
           color="purple"
         />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white rounded-lg shadow p-6">
-          <h3 className="text-lg font-semibold mb-4">Monthly Revenue Trend</h3>
-          <div className="h-64 flex items-end justify-between gap-2">
-            {data.revenue.map((val, i) => (
-              <div key={i} className="flex-1 flex flex-col items-center gap-2">
-                <div
-                  className="w-full bg-indigo-500 rounded-t"
-                  style={{ height: `${(val / Math.max(...data.revenue)) * 100}%` }}
-                />
-                <span className="text-xs text-gray-600">{data.months[i]}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div className="bg-white rounded-lg shadow p-6">
-          <h3 className="text-lg font-semibold mb-4">Top Selling Items</h3>
-          <div className="space-y-3">
-            {data.topItems.map((item, i) => (
-              <div key={i} className="flex items-center justify-between">
-                <span className="text-sm text-gray-700">{item.name}</span>
-                <div className="flex items-center gap-2">
-                  <div className="w-32 h-2 bg-gray-200 rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-indigo-500"
-                      style={{ width: `${(item.qty / data.topItems[0].qty) * 100}%` }}
-                    />
-                  </div>
-                  <span className="text-sm font-semibold text-gray-800 w-8 text-right">{item.qty}</span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
+        <TrendChart data={data.trends} />
+        <TopSellingItems items={data.topItems} onNavigate={onNavigate} />
       </div>
     </div>
   );
 }
 
-function StatCard({ title, value, icon: Icon, color }) {
+function TrendChart({ data }) {
+  const [hoveredIndex, setHoveredIndex] = useState(null);
+  const maxValue = Math.max(...data.revenue, ...data.expenses, 1); // Avoid division by zero
+
+  return (
+    <div className="bg-white rounded-lg shadow p-6">
+      <h3 className="text-lg font-semibold mb-4">6-Month Performance</h3>
+      <div className="h-64 flex items-end justify-between gap-2 relative">
+        {data.months.map((month, i) => (
+          <div 
+            key={i} 
+            className="flex-1 flex flex-col items-center gap-2 relative h-full justify-end group"
+            onMouseEnter={() => setHoveredIndex(i)}
+            onMouseLeave={() => setHoveredIndex(null)}
+          >
+            <div className="w-full h-full flex items-end justify-center gap-1">
+              <div className="w-1/2 bg-green-400 rounded-t transition-all group-hover:bg-green-500" style={{ height: `${(data.revenue[i] / maxValue) * 100}%` }} />
+              <div className="w-1/2 bg-red-400 rounded-t transition-all group-hover:bg-red-500" style={{ height: `${(data.expenses[i] / maxValue) * 100}%` }} />
+            </div>
+            <span className="text-xs text-gray-600">{month}</span>
+            {hoveredIndex === i && (
+              <div className="absolute bottom-full mb-2 w-48 bg-gray-800 text-white text-xs rounded-lg p-2 z-10 pointer-events-none animate-in fade-in-0">
+                <div className="font-bold text-center mb-1">{month}</div>
+                <div className="flex justify-between"><span className="text-green-400">Revenue:</span> PHP {data.revenue[i].toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+                <div className="flex justify-between"><span className="text-red-400">Expenses:</span> PHP {data.expenses[i].toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+      <div className="flex justify-center gap-4 mt-4 text-sm">
+        <div className="flex items-center gap-2"><div className="w-3 h-3 bg-green-400 rounded-sm"></div> Revenue</div>
+        <div className="flex items-center gap-2"><div className="w-3 h-3 bg-red-400 rounded-sm"></div> Expenses</div>
+      </div>
+    </div>
+  );
+}
+
+function MiniTrendChart({ data, color }) {
+  if (!data || data.length === 0) return null;
+  const maxValue = Math.max(...data, 1);
+  const points = data.map((d, i) => `${(i / (data.length - 1)) * 100},${100 - (d / maxValue) * 100}`).join(' ');
+
+  const colors = {
+    green: 'stroke-green-500',
+    blue: 'stroke-blue-500',
+    red: 'stroke-red-500',
+    purple: 'stroke-purple-500'
+  };
+
+  return (
+    <div className="h-8 mt-2">
+      <svg viewBox="0 0 100 100" className="w-full h-full" preserveAspectRatio="none">
+        <polyline
+          fill="none"
+          className={`${colors[color]}`}
+          strokeWidth="5"
+          points={points}
+        />
+      </svg>
+    </div>
+  );
+}
+
+function StatCard({ title, value, icon: Icon, color, change, changeSuffix = '%', trendData }) {
   const colors = {
     green: 'bg-green-100 text-green-600',
     blue: 'bg-blue-100 text-blue-600',
@@ -465,14 +469,75 @@ function StatCard({ title, value, icon: Icon, color }) {
   };
 
   return (
-    <div className="bg-white rounded-lg shadow p-6">
-      <div className="flex items-center justify-between mb-2">
-        <span className="text-sm text-gray-600">{title}</span>
+    <div className="bg-white rounded-lg shadow p-5 flex flex-col">
+      <div className="flex items-center justify-between">
+        <span className="text-sm font-medium text-gray-600">{title}</span>
         <div className={`p-2 rounded-lg ${colors[color]}`}>
           <Icon className="w-5 h-5" />
         </div>
       </div>
-      <div className="text-2xl font-bold text-gray-800">{value}</div>
+      <div className="mt-2 text-2xl font-bold text-gray-800 flex-grow">{value}</div>
+      {change !== null && change !== undefined && (
+        <div className={`mt-1 flex items-center text-xs ${change >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+          {change >= 0 ? <ArrowUp className="w-3 h-3 mr-1" /> : <ArrowDown className="w-3 h-3 mr-1" />}
+          <span>
+            {changeSuffix === '%' ? (
+              <>
+                <span className="font-semibold">{Math.abs(change).toFixed(1)}%</span> vs last month
+              </>
+            ) : (
+              <>
+                <span className="font-semibold">{Math.abs(change)}</span>{changeSuffix}
+              </>
+            )}
+          </span>
+        </div>
+      )}
+      <MiniTrendChart data={trendData} color={color} />
+    </div>
+  );
+}
+
+function TopSellingItems({ items, onNavigate }) {
+  if (!items || items.length === 0) {
+    return (
+      <div className="bg-white rounded-lg shadow p-6">
+        <h3 className="text-lg font-semibold mb-4">Top Selling Items</h3>
+        <p className="text-gray-500 text-center py-8">No sales data for this month yet.</p>
+      </div>
+    );
+  }
+
+  const maxQty = items[0]?.qty || 1;
+  const rankColors = [
+    'bg-yellow-400 text-yellow-800',
+    'bg-gray-300 text-gray-700',
+    'bg-yellow-600 text-yellow-100',
+  ];
+
+  return (
+    <div className="bg-white rounded-lg shadow p-6">
+      <h3 className="text-lg font-semibold mb-4">Top Selling Items (Current Month)</h3>
+      <div className="space-y-4">
+        {items.map((item, i) => (
+          <div key={item.item_id} className="group">
+            <div className="flex items-center gap-4">
+              <div className={`w-8 h-8 flex-shrink-0 rounded-full flex items-center justify-center font-bold text-sm ${rankColors[i] || 'bg-gray-100 text-gray-600'}`}>
+                {i + 1}
+              </div>
+              <div className="flex-1">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm font-medium text-gray-800">{item.name}</span>
+                  <span className="text-sm font-bold text-gray-800">{item.qty} sold</span>
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-2 mt-1 overflow-hidden">
+                  <div className="bg-indigo-500 h-2 rounded-full transition-all duration-300 group-hover:bg-indigo-600" style={{ width: `${(item.qty / maxQty) * 100}%` }} />
+                </div>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
