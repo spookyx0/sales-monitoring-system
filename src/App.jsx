@@ -1596,6 +1596,7 @@ function Analytics({ refreshKey }) {
   const [hoveredIndex, setHoveredIndex] = useState(null);
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
   const [isPrinting, setIsPrinting] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
 
   useEffect(() => {
     const fetchAnalyticsData = async () => { // eslint-disable-line react-hooks/exhaustive-deps
@@ -1761,7 +1762,37 @@ function Analytics({ refreshKey }) {
   };
 
   const handleExportInventory = async () => {
-    showStatus('error', 'Inventory export is not yet implemented.');
+    setIsExporting(true);
+    try {
+      // Fetch all items for the report, regardless of status
+      const { items } = await api.getItems({ limit: 10000, status: 'all' });
+
+      if (items.length === 0) {
+        showStatus('error', 'No inventory data to export.');
+        return;
+      }
+
+      const headers = ['Item Number', 'Name', 'Category', 'Status', 'Quantity In Stock', 'Reorder Level', 'Purchase Price', 'Selling Price', 'Date Added'];
+      const rows = items.map(item => [
+        item.item_number,
+        `"${item.name.replace(/"/g, '""')}"`, // Handle quotes in name
+        `"${item.category || ''}"`,
+        item.status,
+        item.qty_in_stock,
+        item.reorder_level,
+        parseFloat(item.purchase_price || 0).toFixed(2),
+        parseFloat(item.selling_price || 0).toFixed(2),
+        new Date(item.created_at).toLocaleDateString()
+      ]);
+
+      const csvContent = [headers.join(','), ...rows.map(row => row.join(','))].join('\n');
+      downloadCSV(csvContent, `inventory-report-${new Date().toISOString().split('T')[0]}.csv`);
+    } catch (error) {
+      console.error("Failed to export inventory", error);
+      showStatus('error', 'Failed to export inventory report.');
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   const handlePrintReport = () => {
@@ -1946,12 +1977,16 @@ function Analytics({ refreshKey }) {
               </div>
               <Download className="w-5 h-5 text-gray-400" />
             </button>
-            <button onClick={handleExportInventory} className="px-4 py-3 border-2 border-gray-300 rounded-lg hover:border-indigo-500 hover:bg-indigo-50 transition text-left flex justify-between items-start">
+            <button onClick={handleExportInventory} disabled={isExporting} className="px-4 py-3 border-2 border-gray-300 rounded-lg hover:border-indigo-500 hover:bg-indigo-50 transition text-left flex justify-between items-start disabled:opacity-50 disabled:cursor-not-allowed">
               <div>
                 <div className="font-semibold text-gray-800">Inventory</div>
                 <div className="text-xs text-gray-500 mt-1">Export current stock levels</div>
               </div>
-              <Download className="w-5 h-5 text-gray-400" />
+              {isExporting ? (
+                <Loader2 className="w-5 h-5 text-gray-400 animate-spin" />
+              ) : (
+                <Download className="w-5 h-5 text-gray-400" />
+              )}
             </button>
           </div>
           <button onClick={handlePrintReport} className="px-4 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-semibold flex flex-col items-center justify-center gap-2 transition">
