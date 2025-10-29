@@ -94,6 +94,8 @@ function App() {
   const handleLogout = () => {
     api.logout();
     setAuth(null);
+    localStorage.removeItem('theme');
+    setTheme('light');
   };
 
   const handleRefresh = () => {
