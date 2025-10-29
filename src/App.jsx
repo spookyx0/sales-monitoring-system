@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { BarChart3, Package, DollarSign, TrendingUp, AlertTriangle, Users, LogOut, Menu, X, Plus, Edit, Trash2, Search, Calendar, ShoppingCart, Minus, FileText, CheckCircle, XCircle, Loader2, Bell, RefreshCw, ChevronsUpDown, ChevronUp, ChevronDown, ArrowUp, ArrowDown, RotateCw, User, Lock, Mail, MessageSquare, Send, Building, Target, Linkedin, Github } from 'lucide-react';
+import { BarChart3, Package, DollarSign, TrendingUp, AlertTriangle, Users, LogOut, Menu, X, Plus, Edit, Trash2, Search, Calendar, ShoppingCart, Minus, FileText, CheckCircle, XCircle, Loader2, Bell, RefreshCw, ChevronsUpDown, ChevronUp, ChevronDown, ArrowUp, ArrowDown, RotateCw, User, Lock, Mail, MessageSquare, Send, Building, Target, Linkedin, Github, Instagram, Facebook } from 'lucide-react';
 import api from './api';
 
 const StatusContext = React.createContext();
@@ -146,7 +146,7 @@ function PublicNav({ activePage, onNavigate }) {
 
   return (
     <>
-      <nav className="relative z-10 flex items-center justify-between px-6 py-6 md:px-12">
+      <nav className="relative z-10 flex items-center justify-between px-6 py-6 md:px-12 animate-in fade-in-0 slide-in-from-top-5 duration-700">
         <div className="flex items-center gap-3 cursor-pointer" onClick={() => onNavigate('login')}>
           <BarChart3 className="w-8 h-8 text-cyan-400" />
           <span className="text-white font-semibold text-xl tracking-wider">
@@ -227,8 +227,7 @@ function LoginPage({ onLogin, onNavigate }) {
         {/* Login Form - Added slide-in animation */}
         <div className="w-full md:w-auto mb-12 md:mb-0 animate-in fade-in-0 slide-in-from-left-10 duration-1000">
           <div className={`bg-indigo-950/40 backdrop-blur-xl rounded-3xl p-8 md:p-10 w-full md:w-96 border border-indigo-800/30 shadow-2xl ${error ? 'animate-shake' : ''}`}>
-            {/* User Icon */}
-            <div className="flex justify-center mb-8">
+            <div className="flex justify-center mb-8 animate-in fade-in-0 zoom-in-90 duration-500 delay-300">
               <div className="w-20 h-20 rounded-full border-2 border-cyan-400 flex items-center justify-center bg-indigo-900/50">
                 <svg className="w-10 h-10 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
@@ -239,7 +238,7 @@ function LoginPage({ onLogin, onNavigate }) {
             {/* Form */}
             <form onSubmit={handleSubmit} className="space-y-6">
               {/* Username Input */}
-              <div className="relative">
+              <div className="relative animate-in fade-in-0 slide-in-from-bottom-5 duration-500 delay-400">
                 <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
                   <User className="w-5 h-5" />
                 </div>
@@ -253,7 +252,7 @@ function LoginPage({ onLogin, onNavigate }) {
               </div>
 
               {/* Password Input */}
-              <div className="relative">
+              <div className="relative animate-in fade-in-0 slide-in-from-bottom-5 duration-500 delay-500">
                 <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
                   <Lock className="w-5 h-5" />
                 </div>
@@ -296,11 +295,11 @@ function LoginPage({ onLogin, onNavigate }) {
 
         {/* Welcome Section */}
         <div className="w-full md:w-auto text-center md:text-left md:ml-20">
-          <h1 className="text-5xl md:text-6xl font-bold text-white mb-6 leading-tight">
+          <h1 className="text-5xl md:text-6xl font-bold text-white mb-6 leading-tight animate-in fade-in-0 slide-in-from-right-10 duration-1000">
             Monitor Your Sales,<br />
             Boost Your Success.
           </h1>
-          <p className="text-gray-300 text-sm md:text-base max-w-md mb-8">
+          <p className="text-gray-300 text-sm md:text-base max-w-md mb-8 animate-in fade-in-0 slide-in-from-right-10 duration-1000 delay-300">
             Sign in to access your dashboard and gain valuable insights into your business performance.
           </p>
         </div>
@@ -423,11 +422,18 @@ function ContactPage({ onNavigate }) {
 }
 
 function AboutPage({ onNavigate }) {
-  const teamMembers = [
-    { name: 'Ken Kerk', role: 'Lead Developer', bio: 'The architect of this system, passionate about creating efficient and elegant solutions.', avatar: 'https://i.pravatar.cc/150?u=ken', linkedin: '#', github: '#' },
-    { name: 'Jane Doe', role: 'UI/UX Designer', bio: 'The creative mind behind the intuitive and beautiful user interface.', avatar: 'https://i.pravatar.cc/150?u=jane', linkedin: '#', github: '#' },
-    { name: 'John Smith', role: 'Project Manager', bio: 'Ensuring the project stays on track and meets all the requirements.', avatar: 'https://i.pravatar.cc/150?u=john', linkedin: '#', github: '#' },
-  ];
+  const developer = {
+    name: 'Quinnreeve Lobos',
+    role: 'Full-Stack Developer & UI/UX Designer',
+    bio: 'The sole architect and designer of this system. Passionate about creating efficient, elegant, and user-friendly solutions from the ground up. Feel free to connect!',
+    avatar: '/avatar.jpg', // Make sure to place your image file in the `public` directory
+    socials: { 
+      linkedin: 'https://www.linkedin.com/in/quinnreeve-lobos/', 
+      github: 'https://github.com/spookyx0', 
+      instagram: 'https://www.instagram.com/kennwithahoodie/', 
+      facebook: 'https://www.facebook.com/lil.kenkernel1/' 
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-950 via-purple-950 to-indigo-900 relative overflow-hidden text-white">
@@ -449,56 +455,48 @@ function AboutPage({ onNavigate }) {
         </div>
 
         {/* Mission & Vision Section */}
-        <div className="grid md:grid-cols-2 gap-12 mt-24 text-center md:text-left">
-          <div className="animate-in fade-in-0 slide-in-from-left-20 duration-1000 delay-200">
-            <div className="flex items-center justify-center md:justify-start gap-3 mb-4">
-              <Building className="w-8 h-8 text-cyan-400" />
-              <h2 className="text-3xl font-bold">Our Mission</h2>
-            </div>
-            <p className="text-gray-300 leading-relaxed">
-              To simplify sales tracking and provide powerful, accessible analytics for businesses of all sizes. We believe that every business deserves the tools to understand their performance and unlock their full potential.
-            </p>
-          </div>
-          <div className="animate-in fade-in-0 slide-in-from-right-20 duration-1000 delay-200">
-            <div className="flex items-center justify-center md:justify-start gap-3 mb-4">
-              <Target className="w-8 h-8 text-cyan-400" />
-              <h2 className="text-3xl font-bold">Our Vision</h2>
-            </div>
-            <p className="text-gray-300 leading-relaxed">
-              To become the leading platform for sales analytics, known for our commitment to user-centric design, data accuracy, and continuous innovation that helps our clients thrive in a competitive marketplace.
-            </p>
-          </div>
-        </div>
-
-        {/* Team Section */}
-        <div className="mt-24">
-          <h2 className="text-4xl font-bold text-center mb-12 animate-in fade-in-0 duration-1000 delay-300">Meet the Team</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
-            {teamMembers.map((member, i) => (
-              <div key={member.name} className="[perspective:1000px] animate-in fade-in-0 zoom-in-90 duration-1000" style={{ animationDelay: `${400 + i * 150}ms`}}>
-                <div className="relative h-80 w-full rounded-2xl shadow-2xl transition-all duration-500 [transform-style:preserve-3d] group-hover:[transform:rotateY(180deg)]">
-                  {/* Front of Card */}
-                  <div className="absolute inset-0 bg-indigo-950/40 backdrop-blur-xl rounded-2xl border border-indigo-800/30 p-6 flex flex-col items-center justify-center text-center [backface-visibility:hidden]">
-                    <img src={member.avatar} alt={member.name} className="w-28 h-28 rounded-full border-4 border-cyan-400 mb-4" />
-                    <h3 className="text-xl font-bold">{member.name}</h3>
-                    <p className="text-cyan-400 font-medium">{member.role}</p>
-                  </div>
-                  {/* Back of Card */}
-                  <div className="absolute inset-0 bg-indigo-900/80 backdrop-blur-xl rounded-2xl border border-indigo-700/50 p-6 flex flex-col justify-center text-center [transform:rotateY(180deg)] [backface-visibility:hidden]">
-                    <h3 className="text-xl font-bold mb-2">{member.name}</h3>
-                    <p className="text-gray-300 text-sm mb-4">{member.bio}</p>
-                    <div className="flex justify-center gap-4">
-                      <a href={member.linkedin} target="_blank" rel="noopener noreferrer" className="text-gray-300 hover:text-cyan-400 transition-colors">
-                        <Linkedin className="w-6 h-6" />
-                      </a>
-                      <a href={member.github} target="_blank" rel="noopener noreferrer" className="text-gray-300 hover:text-cyan-400 transition-colors">
-                        <Github className="w-6 h-6" />
-                      </a>
-                    </div>
-                  </div>
-                </div>
+        <div className="grid md:grid-cols-2 gap-x-20 gap-y-12 mt-24">
+          {/* Left Column: Mission & Vision */}
+          <div className="space-y-12 text-center md:text-left">
+            <div className="animate-in fade-in-0 slide-in-from-left-20 duration-1000 delay-200">
+              <div className="flex items-center justify-center md:justify-start gap-3 mb-4">
+                <Building className="w-8 h-8 text-cyan-400" />
+                <h2 className="text-3xl font-bold">Our Mission</h2>
               </div>
-            ))}
+              <p className="text-gray-300 leading-relaxed max-w-lg mx-auto md:mx-0">
+                To simplify sales tracking and provide powerful, accessible analytics for businesses of all sizes. We believe that every business deserves the tools to understand their performance and unlock their full potential.
+              </p>
+            </div>
+            <div className="animate-in fade-in-0 slide-in-from-left-20 duration-1000 delay-300">
+              <div className="flex items-center justify-center md:justify-start gap-3 mb-4">
+                <Target className="w-8 h-8 text-cyan-400" />
+                <h2 className="text-3xl font-bold">Our Vision</h2>
+              </div>
+              <p className="text-gray-300 leading-relaxed max-w-lg mx-auto md:mx-0">
+                To become the leading platform for sales analytics, known for our commitment to user-centric design, data accuracy, and continuous innovation that helps our clients thrive in a competitive marketplace.
+              </p>
+            </div>
+            {/* Social Links */}
+            <div className="animate-in fade-in-0 slide-in-from-bottom-5 duration-1000 delay-400 pt-4">
+              <h3 className="text-lg font-semibold text-center md:text-left mb-4 text-cyan-400">Connect with me</h3>
+              <div className="flex justify-center md:justify-start gap-6">
+                <a href={developer.socials.linkedin} target="_blank" rel="noopener noreferrer" className="text-gray-300 hover:text-white hover:scale-110 transition-all" aria-label="LinkedIn"><Linkedin className="w-7 h-7" /></a>
+                <a href={developer.socials.github} target="_blank" rel="noopener noreferrer" className="text-gray-300 hover:text-white hover:scale-110 transition-all" aria-label="GitHub"><Github className="w-7 h-7" /></a>
+                <a href={developer.socials.instagram} target="_blank" rel="noopener noreferrer" className="text-gray-300 hover:text-white hover:scale-110 transition-all" aria-label="Instagram"><Instagram className="w-7 h-7" /></a>
+                <a href={developer.socials.facebook} target="_blank" rel="noopener noreferrer" className="text-gray-300 hover:text-white hover:scale-110 transition-all" aria-label="Facebook"><Facebook className="w-7 h-7" /></a>
+              </div>
+            </div>
+          </div>
+
+          {/* Right Column: Developer Card */}
+          <div className="flex flex-col items-center md:items-start md:ml-24">
+            <h2 className="text-4xl font-bold text-center md:text-left mb-8 animate-in fade-in-0 duration-1000 delay-400">Meet the Developer</h2>
+            <div className="animate-in fade-in-0 zoom-in-90 duration-1000 delay-500 w-full max-w-sm bg-indigo-950/40 backdrop-blur-xl rounded-2xl border border-indigo-800/30 p-8 text-center group hover:border-cyan-400/50 transition-all">
+              <img src={developer.avatar} alt={developer.name} className="w-32 h-32 rounded-full border-4 border-cyan-400 mb-6 mx-auto transition-transform duration-300 group-hover:scale-105" />
+              <h3 className="text-2xl font-bold">{developer.name}</h3>
+              <p className="text-cyan-400 font-medium mb-4">{developer.role}</p>
+              <p className="text-gray-300 text-sm">{developer.bio}</p>
+            </div>
           </div>
         </div>
       </div>
