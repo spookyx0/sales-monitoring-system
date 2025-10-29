@@ -97,7 +97,6 @@ function App() {
   };
 
   const handleRefresh = () => {
-    fetchNotifications();
     setRefreshKey(prevKey => prevKey + 1);
     setLastRefreshed(new Date());
   };
