@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { BarChart3, Package, DollarSign, TrendingUp, AlertTriangle, Users, LogOut, Menu, X, Plus, Edit, Trash2, Search, Calendar, ShoppingCart, Minus, FileText, CheckCircle, XCircle, Loader2, Bell, RefreshCw, ChevronsUpDown, ChevronUp, ChevronDown, ArrowUp, ArrowDown, RotateCw, User, Lock, Mail, MessageSquare, Send, Building, Target, Linkedin, Github, Instagram, Facebook, KeyRound, Printer } from 'lucide-react';
+import { BarChart3, Package, DollarSign, TrendingUp, AlertTriangle, Users, LogOut, Menu, X, Plus, Edit, Trash2, Search, Calendar, ShoppingCart, Minus, FileText, CheckCircle, XCircle, Loader2, Bell, RefreshCw, ChevronsUpDown, ChevronUp, ChevronDown, ArrowUp, ArrowDown, RotateCw, User, Lock, Mail, MessageSquare, Send, Building, Target, Linkedin, Github, Instagram, Facebook, KeyRound, Printer, Download } from 'lucide-react';
 import api from './api';
 
 const StatusContext = React.createContext();
@@ -1565,6 +1565,29 @@ function Inventory({ setNotifications, user, refreshKey }) {
   );
 }
 
+function getPeriodDateRange(timePeriod, selectedMonth = new Date().getMonth()) {
+  const now = new Date();
+  if (timePeriod === 'daily') {
+    const start = new Date(now.getFullYear(), selectedMonth, 1);
+    const end = new Date(now.getFullYear(), selectedMonth + 1, 0, 23, 59, 59, 999);
+    return { start, end };
+  }
+  if (timePeriod === 'weekly') {
+    const start = new Date(now.getFullYear(), selectedMonth, 1);
+    const end = new Date(now.getFullYear(), selectedMonth + 1, 0, 23, 59, 59, 999);
+    return { start, end };
+  }
+  if (timePeriod === 'monthly') {
+    const start = new Date(now.getFullYear(), 0, 1);
+    const end = new Date(now.getFullYear(), 11, 31, 23, 59, 59, 999);
+    return { start, end };
+  }
+  // yearly
+  const start = new Date(2024, 0, 1);
+  const end = new Date(now.getFullYear(), 11, 31, 23, 59, 59, 999);
+  return { start, end };
+}
+
 function Analytics({ refreshKey }) {
   const [timePeriod, setTimePeriod] = useState('monthly'); // daily, weekly, monthly, yearly
   const [data, setData] = useState(null);
@@ -1572,36 +1595,20 @@ function Analytics({ refreshKey }) {
   const showStatus = React.useContext(StatusContext);
   const [hoveredIndex, setHoveredIndex] = useState(null);
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
+  const [isPrinting, setIsPrinting] = useState(false);
 
   useEffect(() => {
-    const getPeriodDateRange = () => {
-      const now = new Date();
-      if (timePeriod === 'daily') {
-        return { start: new Date(now.setHours(0, 0, 0, 0)) };
-      }
-      if (timePeriod === 'weekly') {
-        const firstDay = new Date(now.setDate(now.getDate() - now.getDay()));
-        return { start: new Date(firstDay.setHours(0, 0, 0, 0)) };
-      }
-      if (timePeriod === 'monthly') {
-        return { start: new Date(now.getFullYear(), now.getMonth(), 1) };
-      }
-      if (timePeriod === 'yearly') {
-        return { start: new Date(now.getFullYear(), 0, 1) };
-      }
-      return { start: new Date(now.getFullYear(), 0, 1) }; // Default to yearly
-    };
-
     const fetchAnalyticsData = async () => { // eslint-disable-line react-hooks/exhaustive-deps
       setLoading(true);
       try {
         const now = new Date();
         const yearStart = new Date(now.getFullYear(), 0, 1).toISOString().split('T')[0];
-        const periodRange = getPeriodDateRange();
+        const periodRange = getPeriodDateRange(timePeriod, selectedMonth);
 
         const allTimeStartDate = new Date(2024, 0, 1).toISOString().split('T')[0];
         const [allSales, allExpenses] = await Promise.all([
           api.getSales({ limit: 10000, start_date: allTimeStartDate }),
+          // Assuming getExpenses also supports limit and start_date
           api.getExpenses({ limit: 10000, start_date: allTimeStartDate }),
         ]);
 
@@ -1700,6 +1707,8 @@ function Analytics({ refreshKey }) {
           totalExpenses,
           topSellingProducts,
           salesTrend,
+          allSales: allSales.sales, // Pass raw data for export
+          allExpenses: allExpenses.expenses, // Pass raw data for export
         });
 
       } catch (error) {
@@ -1714,6 +1723,50 @@ function Analytics({ refreshKey }) {
 
   if (loading) return <div>Loading analytics...</div>;
   if (!data) return <div>Could not load analytics data.</div>;
+
+  const handleExportSales = () => {
+    const { start, end } = getPeriodDateRange(timePeriod, selectedMonth);
+    const periodSales = data.allSales.filter(s => {
+      const saleDate = new Date(s.created_at);
+      return saleDate >= start && saleDate <= end;
+    });
+
+    if (periodSales.length === 0) {
+      showStatus('error', 'No sales data to export for this period.');
+      return;
+    }
+
+    const headers = ['Sale Number', 'Date', 'Admin', 'Payment Method', 'Total Amount'];
+    const rows = periodSales.map(s => [s.sale_number, new Date(s.created_at).toLocaleString(), s.username, s.payment_method, s.total_amount]);
+    const csvContent = [headers.join(','), ...rows.map(row => row.join(','))].join('\n');
+    downloadCSV(csvContent, `sales-report-${timePeriod}-${new Date().toISOString().split('T')[0]}.csv`);
+  };
+
+  const handleExportExpenses = () => {
+    const { start, end } = getPeriodDateRange(timePeriod, selectedMonth);
+    const periodExpenses = data.allExpenses.filter(e => {
+      const expenseDate = new Date(e.date);
+      return expenseDate >= start && expenseDate <= end;
+    });
+
+    if (periodExpenses.length === 0) {
+      showStatus('error', 'No expense data to export for this period.');
+      return;
+    }
+
+    const headers = ['Date', 'Category', 'Amount', 'Notes', 'Admin'];
+    const rows = periodExpenses.map(e => [e.date, e.category, e.amount, `"${e.notes || ''}"`, e.username]);
+    const csvContent = [headers.join(','), ...rows.map(row => row.join(','))].join('\n');
+    downloadCSV(csvContent, `expenses-report-${timePeriod}-${new Date().toISOString().split('T')[0]}.csv`);
+  };
+
+  const handleExportInventory = async () => {
+    showStatus('error', 'Inventory export is not yet implemented.');
+  };
+
+  const handlePrintReport = () => {
+    setIsPrinting(true);
+  };
 
   const trendData = data.salesTrend || { labels: [], data: [] };
   const maxTrendValue = Math.max(...trendData.data, 1);
@@ -1877,19 +1930,110 @@ function Analytics({ refreshKey }) {
 
       <div className="bg-white rounded-lg shadow p-6">
         <h3 className="text-lg font-semibold mb-4">Export Reports</h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <button className="px-4 py-3 border-2 border-gray-300 rounded-lg hover:border-indigo-500 hover:bg-indigo-50 transition text-left">
-            <div className="font-semibold text-gray-800">Monthly Sales Report</div>
-            <div className="text-xs text-gray-500 mt-1">Export as CSV or PDF</div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="lg:col-span-3 grid grid-cols-1 md:grid-cols-3 gap-4">
+            <button onClick={handleExportSales} className="px-4 py-3 border-2 border-gray-300 rounded-lg hover:border-indigo-500 hover:bg-indigo-50 transition text-left flex justify-between items-start">
+              <div>
+                <div className="font-semibold text-gray-800">{timePeriod.charAt(0).toUpperCase() + timePeriod.slice(1)} Sales</div>
+                <div className="text-xs text-gray-500 mt-1">Export sales data as CSV</div>
+              </div>
+              <Download className="w-5 h-5 text-gray-400" />
+            </button>
+            <button onClick={handleExportExpenses} className="px-4 py-3 border-2 border-gray-300 rounded-lg hover:border-indigo-500 hover:bg-indigo-50 transition text-left flex justify-between items-start">
+              <div>
+                <div className="font-semibold text-gray-800">{timePeriod.charAt(0).toUpperCase() + timePeriod.slice(1)} Expenses</div>
+                <div className="text-xs text-gray-500 mt-1">Export expenses data as CSV</div>
+              </div>
+              <Download className="w-5 h-5 text-gray-400" />
+            </button>
+            <button onClick={handleExportInventory} className="px-4 py-3 border-2 border-gray-300 rounded-lg hover:border-indigo-500 hover:bg-indigo-50 transition text-left flex justify-between items-start">
+              <div>
+                <div className="font-semibold text-gray-800">Inventory</div>
+                <div className="text-xs text-gray-500 mt-1">Export current stock levels</div>
+              </div>
+              <Download className="w-5 h-5 text-gray-400" />
+            </button>
+          </div>
+          <button onClick={handlePrintReport} className="px-4 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-semibold flex flex-col items-center justify-center gap-2 transition">
+            <Printer className="w-6 h-6" />
+            <span>Print Full Report</span>
           </button>
-          <button className="px-4 py-3 border-2 border-gray-300 rounded-lg hover:border-indigo-500 hover:bg-indigo-50 transition text-left">
-            <div className="font-semibold text-gray-800">Inventory Report</div>
-            <div className="text-xs text-gray-500 mt-1">Current stock levels</div>
+        </div>
+      </div>
+      {isPrinting && <PrintableReport data={data} timePeriod={timePeriod} onClose={() => setIsPrinting(false)} />}
+    </div>
+  );
+}
+
+function PrintableReport({ data, timePeriod, onClose }) {
+  useEffect(() => {
+    const handleAfterPrint = () => onClose();
+    window.addEventListener('afterprint', handleAfterPrint);
+    return () => window.removeEventListener('afterprint', handleAfterPrint);
+  }, [onClose]);
+
+  const handlePrint = () => {
+    // This triggers the browser's print dialog
+    window.print();
+  };
+
+  const { start, end } = getPeriodDateRange(timePeriod);
+  const periodSales = data.allSales.filter(s => new Date(s.created_at) >= start && new Date(s.created_at) <= end);
+  const periodExpenses = data.allExpenses.filter(e => new Date(e.date) >= start && new Date(e.date) <= end);
+
+  const totalRevenue = periodSales.reduce((sum, s) => sum + parseFloat(s.total_amount), 0);
+  const totalExpenses = periodExpenses.reduce((sum, e) => sum + parseFloat(e.amount), 0);
+  const netProfit = totalRevenue - totalExpenses;
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-5xl max-h-[90vh] flex flex-col animate-in fade-in-0 zoom-in-95 print:h-auto print:max-h-none">
+        <div className="p-4 border-b flex justify-between items-center no-print">
+          <h3 className="text-lg font-bold text-gray-800">Report Preview</h3>
+          <button onClick={onClose} className="p-1 rounded-full text-gray-400 hover:bg-gray-100 transition-colors">
+            <X className="w-5 h-5" />
           </button>
-          <button className="px-4 py-3 border-2 border-gray-300 rounded-lg hover:border-indigo-500 hover:bg-indigo-50 transition text-left">
-            <div className="font-semibold text-gray-800">Expenses Report</div>
-            <div className="text-xs text-gray-500 mt-1">Monthly expenses breakdown</div>
-          </button>
+        </div>
+
+        {/* This is the div that will be printed */}
+        <div className="printable-report-area p-8 overflow-y-auto print:overflow-visible">
+          <div className="flex justify-between items-center border-b pb-4 mb-8">
+            <img src="/logo.png" alt="Company Logo" className="h-12" />
+            <div>
+              <h1 className="text-3xl font-bold text-gray-800">
+                {timePeriod.charAt(0).toUpperCase() + timePeriod.slice(1)} Business Report
+              </h1>
+              <p className="text-right text-gray-500 text-sm">
+                {start.toLocaleDateString()} - {end.toLocaleDateString()}
+              </p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-3 gap-4 mb-8 text-center">
+            <div className="p-4 bg-green-50 rounded-lg"><div className="text-sm text-green-800">Total Revenue</div><div className="text-2xl font-bold text-green-600">PHP {totalRevenue.toFixed(2)}</div></div>
+            <div className="p-4 bg-red-50 rounded-lg"><div className="text-sm text-red-800">Total Expenses</div><div className="text-2xl font-bold text-red-600">PHP {totalExpenses.toFixed(2)}</div></div>
+            <div className="p-4 bg-indigo-50 rounded-lg"><div className="text-sm text-indigo-800">Net Profit</div><div className="text-2xl font-bold text-indigo-600">PHP {netProfit.toFixed(2)}</div></div>
+          </div>
+
+          <div className="mb-8">
+            <h2 className="text-xl font-semibold mb-4 border-b pb-2">Sales Details</h2>
+            <table className="w-full text-sm">
+              <thead><tr className="bg-gray-50"><th className="p-2 text-left font-semibold">Date</th><th className="p-2 text-left font-semibold">Sale #</th><th className="p-2 text-left font-semibold">Admin</th><th className="p-2 text-right font-semibold">Amount</th></tr></thead>
+              <tbody>{periodSales.map(s => <tr key={s.sale_id} className="border-b"><td className="p-2">{new Date(s.created_at).toLocaleDateString()}</td><td className="p-2">{s.sale_number}</td><td className="p-2">{s.username}</td><td className="p-2 text-right">PHP {parseFloat(s.total_amount).toFixed(2)}</td></tr>)}</tbody>
+            </table>
+          </div>
+
+          <div>
+            <h2 className="text-xl font-semibold mb-4 border-b pb-2">Expenses Details</h2>
+            <table className="w-full text-sm">
+              <thead><tr className="bg-gray-50"><th className="p-2 text-left font-semibold">Date</th><th className="p-2 text-left font-semibold">Category</th><th className="p-2 text-left font-semibold">Admin</th><th className="p-2 text-right font-semibold">Amount</th></tr></thead>
+              <tbody>{periodExpenses.map(e => <tr key={e.expense_id} className="border-b"><td className="p-2">{e.date}</td><td className="p-2">{e.category}</td><td className="p-2">{e.username}</td><td className="p-2 text-right">PHP {parseFloat(e.amount).toFixed(2)}</td></tr>)}</tbody>
+            </table>
+          </div>
+        </div>
+        <div className="p-4 bg-gray-50 border-t flex justify-end gap-3 no-print">
+          <button onClick={onClose} className="px-4 py-2 border rounded-lg hover:bg-gray-100 font-semibold text-gray-700">Cancel</button>
+          <button onClick={handlePrint} className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-semibold flex items-center gap-2"><Printer className="w-4 h-4" /> Print</button>
         </div>
       </div>
     </div>
@@ -1911,6 +2055,20 @@ function useDebounce(value, delay) {
   }, [value, delay]);
 
   return debouncedValue;
+}
+
+function downloadCSV(csvString, filename) {
+  const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
+  const link = document.createElement('a');
+  if (link.download !== undefined) {
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', filename);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }
 }
 
 function Audits({ refreshKey }) {

@@ -17,21 +17,17 @@
   body * {
     visibility: hidden;
   }
-  .receipt, .receipt * {
+  .printable-report-area, .printable-report-area * {
     visibility: visible;
   }
-  .receipt {
+  .printable-report-area {
     position: absolute;
     left: 0;
     top: 0;
     width: 100%;
-    font-size: 10pt;
-    color: black !important;
-    background-color: white !important;
-    box-shadow: none;
-    border: none;
-    max-height: none;
-    overflow: visible;
+    height: auto !important;
+    overflow: visible !important;
+    padding: 1.5rem !important; /* Adjust padding for print */
   }
   .no-print {
     display: none !important;
