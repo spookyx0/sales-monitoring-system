@@ -154,6 +154,23 @@ const api = {
       method: 'DELETE',
       headers: getAuthHeaders(),
     });
+  },
+  requestPasswordReset: async (email) => {
+    const response = await fetch(`${API_URL}/auth/forgot-password`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email }),
+    });
+    return handleResponse(response);
+  },
+  resetPassword: async (token, password) => {
+    const response = await fetch(`${API_URL}/auth/reset-password`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token, password }),
+    });
+
+
     // A 204 response means success but has no content to parse.
     // We check for !response.ok AND status is not 204.
     if (!response.ok && response.status !== 204) {

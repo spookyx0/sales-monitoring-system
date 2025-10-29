@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { BarChart3, Package, DollarSign, TrendingUp, AlertTriangle, Users, LogOut, Menu, X, Plus, Edit, Trash2, Search, Calendar, ShoppingCart, Minus, FileText, CheckCircle, XCircle, Loader2, Bell, RefreshCw, ChevronsUpDown, ChevronUp, ChevronDown, ArrowUp, ArrowDown, RotateCw, User, Lock, Mail, MessageSquare, Send, Building, Target, Linkedin, Github, Instagram, Facebook } from 'lucide-react';
+import { BarChart3, Package, DollarSign, TrendingUp, AlertTriangle, Users, LogOut, Menu, X, Plus, Edit, Trash2, Search, Calendar, ShoppingCart, Minus, FileText, CheckCircle, XCircle, Loader2, Bell, RefreshCw, ChevronsUpDown, ChevronUp, ChevronDown, ArrowUp, ArrowDown, RotateCw, User, Lock, Mail, MessageSquare, Send, Building, Target, Linkedin, Github, Instagram, Facebook, KeyRound } from 'lucide-react';
 import api from './api';
 
 const StatusContext = React.createContext();
@@ -29,6 +29,19 @@ function App() {
       return () => clearTimeout(timer);
     }
   }, [status.isOpen]); // useCallback for closeStatus is not needed here
+
+  // Handle routing for public pages like /reset-password?token=...
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const token = urlParams.get('token');
+    if (token) {
+      setPublicPage('reset-password');
+    }
+  }, []);
+
+  const handlePublicNavigate = (page) => {
+    setPublicPage(page);
+  };
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -91,11 +104,13 @@ function App() {
     <StatusContext.Provider value={showStatus}>
       {loading ? (
         <div className="flex h-screen items-center justify-center">Loading...</div>
-      ) : !auth ? ( // Public pages
+      ) : !auth ? (
         publicPage === 'login' ? (
-          <LoginPage onLogin={handleLogin} onNavigate={setPublicPage} />
+          <LoginPage onLogin={handleLogin} onNavigate={handlePublicNavigate} />
         ) : publicPage === 'contact' ? (
-          <ContactPage onNavigate={setPublicPage} />
+          <ContactPage onNavigate={handlePublicNavigate} />
+        ) : publicPage === 'reset-password' ? (
+          <ResetPasswordPage onNavigate={handlePublicNavigate} />
         ) : publicPage === 'about' ? (
           <AboutPage onNavigate={setPublicPage} />
         ) : (
@@ -192,9 +207,10 @@ function LoginPage({ onLogin, onNavigate }) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(false);
+  const [isFadingOut, setIsFadingOut] = useState(false);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
   const showStatus = React.useContext(StatusContext);
 
   const handleSubmit = async (e) => {
@@ -203,18 +219,22 @@ function LoginPage({ onLogin, onNavigate }) {
     setError(false);
     try {
       const authData = await api.login(username, password);
-      onLogin(authData);
+      setIsFadingOut(true);
+      setTimeout(() => {
+        onLogin(authData);
+      }, 700); // Duration should match the animation
     } catch (err) {
       console.error(err);
       showStatus('error', err.message || 'Login failed. Please check your credentials.');
       setError(true);
       setTimeout(() => setError(false), 500);
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-950 via-purple-950 to-indigo-900 relative overflow-hidden">
+    <>
+      <div className={`min-h-screen bg-gradient-to-br from-indigo-950 via-purple-950 to-indigo-900 relative overflow-hidden transition-opacity duration-700 ${isFadingOut ? 'opacity-0' : 'opacity-100'}`}>
       {/* Animated background blur effects */}
       <div className="absolute top-20 left-1/4 w-96 h-96 bg-purple-500 rounded-full mix-blend-screen filter blur-3xl opacity-30 animate-pulse"></div>
       <div className="absolute bottom-20 right-1/4 w-96 h-96 bg-blue-500 rounded-full mix-blend-screen filter blur-3xl opacity-30 animate-pulse" style={{ animationDelay: '1s' }}></div>
@@ -275,19 +295,19 @@ function LoginPage({ onLogin, onNavigate }) {
               </button>
 
               {/* Remember Me & Forgot Password */}
-              <div className="flex items-center justify-between text-xs">
+              <div className="flex items-center justify-between text-xs animate-in fade-in-0 duration-500 delay-700">
                 <label className="flex items-center space-x-2 cursor-pointer">
                   <input
                     type="checkbox"
                     checked={rememberMe}
                     onChange={(e) => setRememberMe(e.target.checked)}
-                    className="w-4 h-4 rounded border-indigo-700 bg-indigo-900/50 text-cyan-500 focus:ring-cyan-500 focus:ring-offset-0"
+                    className="w-4 h-4 rounded border-indigo-700 bg-indigo-900/50 text-cyan-500 focus:ring-cyan-500 focus:ring-offset-indigo-950"
                   />
                   <span className="text-gray-300">Remember me</span>
                 </label>
-                <a href="#forgot" className="text-gray-300 hover:text-cyan-400 transition-colors">
+                <button type="button" onClick={() => setShowForgotPassword(true)} className="text-gray-300 hover:text-cyan-400 transition-colors">
                   Forgot your password?
-                </a>
+                </button>
               </div>
             </form>
           </div>
@@ -305,6 +325,8 @@ function LoginPage({ onLogin, onNavigate }) {
         </div>
       </div>
     </div>
+    {showForgotPassword && <ForgotPasswordModal onClose={() => setShowForgotPassword(false)} />}
+    </>
   );
 }
 
@@ -411,6 +433,177 @@ function ContactPage({ onNavigate }) {
                   <>
                     SEND MESSAGE <Send className="w-4 h-4" />
                   </>
+                )}
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ForgotPasswordModal({ onClose }) {
+  const [email, setEmail] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+  const showStatus = React.useContext(StatusContext);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      await api.requestPasswordReset(email);
+      setSubmitted(true);
+    } catch (err) {
+      console.error(err);
+      // For security, we show the same success state even if the API fails.
+      // This prevents attackers from checking which emails are registered.
+      setSubmitted(true);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-indigo-950/80 backdrop-blur-lg flex items-center justify-center p-4 z-50 animate-in fade-in-0">
+      <div className="relative bg-indigo-950/60 backdrop-blur-xl rounded-3xl p-8 md:p-10 w-full max-w-md border border-indigo-800/30 shadow-2xl animate-in fade-in-0 zoom-in-95 text-center">
+        <button onClick={onClose} className="absolute top-4 right-4 p-2 rounded-full text-gray-400 hover:bg-indigo-900/50 hover:text-white transition-colors">
+          <X className="w-6 h-6" />
+        </button>
+        
+        {submitted ? (
+          <div>
+            <CheckCircle className="w-16 h-16 mx-auto text-cyan-400 mb-4" />
+            <h2 className="text-3xl font-bold text-white">Check Your Email</h2>
+            <p className="text-gray-300 mt-4">
+              If an account with that email exists, a password reset link has been sent. Please check your inbox (and spam folder).
+            </p>
+            <button
+              onClick={onClose}
+              className="mt-8 w-full bg-gradient-to-r from-cyan-500 to-blue-500 text-white py-3 rounded-full font-medium hover:shadow-lg hover:shadow-cyan-500/50 transition-all text-sm tracking-wider"
+            >
+              CLOSE
+            </button>
+          </div>
+        ) : (
+          <>
+            <div className="mb-8">
+              <h2 className="text-3xl font-bold text-white">Forgot Password?</h2>
+              <p className="text-gray-300 mt-2">Enter your email address and we'll send you a link to reset your password.</p>
+            </div>
+
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <div className="relative">
+                <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
+                  <Mail className="w-5 h-5" />
+                </div>
+                <input
+                  type="email"
+                  placeholder="YOUR EMAIL"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  className="w-full bg-indigo-900/50 border border-indigo-700/50 rounded-full px-12 py-3 text-white placeholder-gray-400 text-sm focus:outline-none focus:border-cyan-400 transition-colors"
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full bg-gradient-to-r from-pink-500 to-purple-500 text-white py-3 rounded-full font-medium hover:shadow-lg hover:shadow-pink-500/50 transition-all text-sm tracking-wider disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {loading ? (
+                  <><Loader2 className="w-5 h-5 animate-spin" /> SENDING...</>
+                ) : (
+                  <>SEND RESET LINK <Send className="w-4 h-4" /></>
+                )}
+              </button>
+            </form>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function ResetPasswordPage({ onNavigate }) {
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(false);
+  const showStatus = React.useContext(StatusContext);
+  const token = new URLSearchParams(window.location.search).get('token');
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (password !== confirmPassword) {
+      showStatus('error', 'Passwords do not match.');
+      return;
+    }
+    if (password.length < 6) {
+      showStatus('error', 'Password must be at least 6 characters long.');
+      return;
+    }
+
+    setLoading(true);
+    setError(false);
+    try {
+      await api.resetPassword(token, password);
+      showStatus('success', 'Your password has been reset successfully! You can now log in.');
+      // Redirect to login page by removing token from URL and navigating
+      window.history.pushState({}, '', window.location.pathname);
+      onNavigate('login');
+    } catch (err) {
+      console.error(err);
+      showStatus('error', err.message || 'Failed to reset password. The link may be invalid or expired.');
+      setError(true);
+      setTimeout(() => setError(false), 500);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-indigo-950 via-purple-950 to-indigo-900 relative overflow-hidden">
+      <div className="absolute top-20 left-1/4 w-96 h-96 bg-purple-500 rounded-full mix-blend-screen filter blur-3xl opacity-30 animate-pulse"></div>
+      <div className="absolute bottom-20 right-1/4 w-96 h-96 bg-blue-500 rounded-full mix-blend-screen filter blur-3xl opacity-30 animate-pulse" style={{ animationDelay: '1s' }}></div>
+      
+      <PublicNav activePage="" onNavigate={onNavigate} />
+
+      <div className="relative z-10 flex flex-col items-center justify-center px-6 py-12 min-h-[calc(100vh-100px)]">
+        <div className="w-full md:w-auto animate-in fade-in-0 slide-in-from-bottom-10 duration-1000">
+          <div className={`bg-indigo-950/40 backdrop-blur-xl rounded-3xl p-8 md:p-10 w-full max-w-md border border-indigo-800/30 shadow-2xl ${error ? 'animate-shake' : ''}`}>
+            <div className="text-center mb-8">
+              <KeyRound className="w-12 h-12 mx-auto text-cyan-400 mb-4" />
+              <h1 className="text-3xl font-bold text-white">Reset Your Password</h1>
+              <p className="text-gray-300 mt-2">Enter your new password below.</p>
+            </div>
+
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <div className="relative">
+                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
+                <input
+                  type="password" placeholder="NEW PASSWORD" value={password} onChange={(e) => setPassword(e.target.value)} required
+                  className="w-full bg-indigo-900/50 border border-indigo-700/50 rounded-full px-12 py-3 text-white placeholder-gray-400 text-sm focus:outline-none focus:border-cyan-400 transition-colors"
+                />
+              </div>
+              <div className="relative">
+                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
+                <input
+                  type="password" placeholder="CONFIRM NEW PASSWORD" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required
+                  className="w-full bg-indigo-900/50 border border-indigo-700/50 rounded-full px-12 py-3 text-white placeholder-gray-400 text-sm focus:outline-none focus:border-cyan-400 transition-colors"
+                />
+              </div>
+
+              <button
+                type="submit" disabled={loading}
+                className="w-full bg-gradient-to-r from-pink-500 to-purple-500 text-white py-3 rounded-full font-medium hover:shadow-lg hover:shadow-pink-500/50 transition-all text-sm tracking-wider disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {loading ? (
+                  <><Loader2 className="w-5 h-5 animate-spin" /> UPDATING...</>
+                ) : (
+                  'RESET PASSWORD'
                 )}
               </button>
             </form>
