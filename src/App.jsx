@@ -2647,7 +2647,8 @@ function ReceiptModal({ sale, onClose }) {
         {/* POS-style Receipt */}
         <div ref={printRef} className="receipt p-6 overflow-y-auto font-mono text-sm text-black">
           <div className="text-center">
-            <h2 className="text-xl font-bold">Sales Monitoring</h2>
+            <img src="/logo.png" alt="Company Logo" className="w-24 h-auto mx-auto mb-2" />
+            <h2 className="text-xl font-bold">Sales Monitoring Inc.</h2>
             <p>123 Business Rd.</p>
             <p>Business City, 12345</p>
             <p className="mt-2">--- SALE RECEIPT ---</p>
