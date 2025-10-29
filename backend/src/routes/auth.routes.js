@@ -45,9 +45,9 @@ router.post('/forgot-password', async (req, res, next) => {
     });
 
     const mailOptions = {
-      from: `"Sales Monitoring" <${process.env.EMAIL_USERNAME}>`,
+      from: `"ProfitPulse" <${process.env.EMAIL_USERNAME}>`,
       to: user.email,
-      subject: 'Password Reset Request for Sales Monitoring',
+      subject: 'Password Reset Request for ProfitPulse',
       html: `<p>You are receiving this email because you (or someone else) have requested to reset the password for your account.</p><p>Please click on the following link, or paste it into your browser to complete the process:</p><p><a href="${resetURL}">${resetURL}</a></p><p>This link will expire in 10 minutes.</p><p>If you did not request this, please ignore this email and your password will remain unchanged.</p>`,
     };
 

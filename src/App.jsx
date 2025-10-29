@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { BarChart3, Package, DollarSign, TrendingUp, AlertTriangle, Users, LogOut, Menu, X, Plus, Edit, Trash2, Search, Calendar, ShoppingCart, Minus, FileText, CheckCircle, XCircle, Loader2, Bell, RefreshCw, ChevronsUpDown, ChevronUp, ChevronDown, ArrowUp, ArrowDown, RotateCw, User, Lock, Mail, MessageSquare, Send, Building, Target, Linkedin, Github, Instagram, Facebook, KeyRound, Printer, Download, Sun, Moon } from 'lucide-react';
+import { BarChart3, Package, DollarSign, TrendingUp, AlertTriangle, Users, LogOut, Menu, X, Plus, Edit, Trash2, Search, Calendar, ShoppingCart, Minus, FileText, CheckCircle, XCircle, Loader2, Bell, RefreshCw, ChevronsUpDown, ChevronUp, ChevronDown, ArrowUp, ArrowDown, RotateCw, User, Lock, Mail, MessageSquare, Send, Building, Target, Linkedin, Github, Instagram, Facebook, KeyRound, Printer, Download, Sun, Moon, Activity } from 'lucide-react';
 import api from './api';
 
 const StatusContext = React.createContext();
@@ -180,9 +180,9 @@ function PublicNav({ activePage, onNavigate }) {
     <>
       <nav className="relative z-10 flex items-center justify-between px-6 py-6 md:px-12 animate-in fade-in-0 slide-in-from-top-5 duration-700">
         <div className="flex items-center gap-3 cursor-pointer" onClick={() => onNavigate('login')}>
-          <BarChart3 className="w-8 h-8 text-cyan-400" />
+          <Activity className="w-8 h-8 text-cyan-400" />
           <span className="text-white font-semibold text-xl tracking-wider">
-            Sales Monitoring
+            ProfitPulse
           </span>
         </div>
 
@@ -656,9 +656,8 @@ function AboutPage({ onNavigate }) {
 
       {/* Main Content */}
       <div className="relative z-10 container mx-auto px-6 py-16">
-        {/* Hero Section */}
         <div className="text-center animate-in fade-in-0 slide-in-from-top-10 duration-1000">
-          <h1 className="text-5xl md:text-7xl font-bold mb-4">About Sales Monitoring</h1>
+          <h1 className="text-5xl md:text-7xl font-bold mb-4">About ProfitPulse</h1>
           <p className="text-lg md:text-xl text-gray-300 max-w-3xl mx-auto">
             An innovative platform designed to provide real-time insights and analytics for your business, empowering you to make data-driven decisions.
           </p>
@@ -729,9 +728,9 @@ function Sidebar({ open, currentPage, onNavigate, onLogout }) {
   return (
     <aside className="w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col">
       <div className="p-5 border-b border-gray-200 dark:border-gray-700">
-        <div className="flex items-center gap-2">
-          <BarChart3 className="w-8 h-8 text-indigo-600" />
-          <h1 className="text-xl font-bold text-gray-800 dark:text-gray-200">Sales Monitoring</h1>
+        <div className="flex items-center gap-3">
+          <Activity className="w-8 h-8 text-indigo-600" />
+          <h1 className="text-xl font-bold text-gray-800 dark:text-gray-200">ProfitPulse</h1>
         </div>
       </div>
       
@@ -2883,7 +2882,7 @@ function ReceiptModal({ sale, onClose }) {
         <div ref={printRef} className="receipt printable-content p-6 overflow-y-auto font-mono text-sm text-black bg-white">
           <div className="text-center">
             <img src="/logo.png" alt="Company Logo" className="w-24 h-auto mx-auto mb-2" />
-            <h2 className="text-xl font-bold">Sales Monitoring Inc.</h2>
+            <h2 className="text-xl font-bold">ProfitPulse Inc.</h2>
             <p>123 Business Rd.</p>
             <p>Business City, 12345</p>
             <p className="mt-2">--- SALE RECEIPT ---</p>
