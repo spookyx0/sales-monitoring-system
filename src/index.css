@@ -12,19 +12,14 @@
   body * {
     visibility: hidden;
   }
-  .printable-area, .printable-area * {
+  .receipt, .receipt * {
     visibility: visible;
   }
-  .printable-area {
+  .receipt {
     position: absolute;
     left: 0;
     top: 0;
     width: 100%;
-  }
-  .no-print {
-    display: none !important;
-  }
-  .receipt {
     font-size: 10pt;
     color: black !important;
     background-color: white !important;
@@ -32,5 +27,8 @@
     border: none;
     max-height: none;
     overflow: visible;
+  }
+  .no-print {
+    display: none !important;
   }
 }
