@@ -2044,7 +2044,7 @@ function PrintableReport({ data, timePeriod, onClose }) {
   const netProfit = totalRevenue - totalExpenses;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 no-print">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-5xl max-h-[90vh] flex flex-col animate-in fade-in-0 zoom-in-95 print:h-auto print:max-h-none">
         <div className="p-4 border-b dark:border-gray-700 flex justify-between items-center no-print">
           <h3 className="text-lg font-bold text-gray-800 dark:text-gray-200">Report Preview</h3>
@@ -2054,7 +2054,7 @@ function PrintableReport({ data, timePeriod, onClose }) {
         </div>
 
         {/* This is the div that will be printed */}
-        <div className="printable-report-area p-8 overflow-y-auto print:overflow-visible bg-white text-gray-900">
+        <div className="printable-report-area printable-content p-8 overflow-y-auto print:overflow-visible bg-white text-gray-900">
           <div className="flex justify-between items-center border-b border-gray-200 pb-4 mb-8">
             <img src="/logo.png" alt="Company Logo" className="h-12" />
             <div>
@@ -2851,7 +2851,7 @@ function ReceiptModal({ sale, onClose }) {
   const subtotal = sale.items.reduce((sum, item) => sum + (item.quantity * parseFloat(item.price_at_sale)), 0);
 
   return (
-    <div className="printable-area fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-sm flex flex-col animate-in fade-in-0 zoom-in-95">
         <div className="p-4 border-b dark:border-gray-700 flex justify-between items-center no-print">
           <h3 className="text-lg font-bold text-gray-800 dark:text-gray-200">Receipt Preview</h3>
@@ -2861,7 +2861,7 @@ function ReceiptModal({ sale, onClose }) {
         </div>
 
         {/* POS-style Receipt */}
-        <div ref={printRef} className="receipt p-6 overflow-y-auto font-mono text-sm text-black bg-white">
+        <div ref={printRef} className="receipt printable-content p-6 overflow-y-auto font-mono text-sm text-black bg-white">
           <div className="text-center">
             <img src="/logo.png" alt="Company Logo" className="w-24 h-auto mx-auto mb-2" />
             <h2 className="text-xl font-bold">Sales Monitoring Inc.</h2>

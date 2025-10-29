@@ -15,19 +15,21 @@
 
 @media print {
   body * {
-    visibility: hidden;
+    visibility: hidden !important;
   }
-  .printable-report-area, .printable-report-area * {
-    visibility: visible;
+  .printable-content, .printable-content * {
+    visibility: visible !important;
   }
-  .printable-report-area {
+  .printable-content {
     position: absolute;
     left: 0;
     top: 0;
     width: 100%;
     height: auto !important;
     overflow: visible !important;
-    padding: 1.5rem !important; /* Adjust padding for print */
+    padding: 1.5rem !important;
+    box-shadow: none !important;
+    border: none !important;
   }
   .no-print {
     display: none !important;
