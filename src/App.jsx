@@ -802,7 +802,9 @@ function Topbar({ user, onToggleSidebar, notifications, setNotifications, onNavi
   const [showNotifications, setShowNotifications] = useState(false);
   const unreadCount = notifications.filter(n => !n.read).length;
   const notificationsRef = useRef(null);
+  const prevNotificationsCount = useRef(notifications.length);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [animateBell, setAnimateBell] = useState(false);
   const timeAgo = useTimeAgo(lastRefreshed);
 
 
@@ -816,6 +818,15 @@ function Topbar({ user, onToggleSidebar, notifications, setNotifications, onNavi
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [notificationsRef]);
 
+  useEffect(() => {
+    if (notifications.length > prevNotificationsCount.current) {
+      setAnimateBell(true);
+      const timer = setTimeout(() => setAnimateBell(false), 1000); // Animation duration
+      return () => clearTimeout(timer);
+    }
+    prevNotificationsCount.current = notifications.length;
+  }, [notifications]);
+
   const handleNotificationClick = (notification) => {
     setNotifications(notifications.map(n => n.id === notification.id ? { ...n, read: true } : n));
     setShowNotifications(false);
@@ -823,6 +834,10 @@ function Topbar({ user, onToggleSidebar, notifications, setNotifications, onNavi
 
   const markAllAsRead = () => {
     setNotifications(notifications.map(n => ({ ...n, read: true })));
+  };
+
+  const clearAllNotifications = () => {
+    setNotifications([]);
   };
 
   const handleRefresh = async () => {
@@ -862,9 +877,9 @@ function Topbar({ user, onToggleSidebar, notifications, setNotifications, onNavi
           </button>
           <div className="relative" ref={notificationsRef}>
             <button onClick={() => setShowNotifications(prev => !prev)} className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition relative">
-              <Bell className="w-6 h-6 text-gray-600 dark:text-gray-300" />
+              <Bell className={`w-6 h-6 text-gray-600 dark:text-gray-300 ${animateBell ? 'animate-ring' : ''}`} />
               {unreadCount > 0 && (
-                <span className="absolute top-0 right-0 block h-5 w-5 rounded-full bg-red-500 text-white text-xs flex items-center justify-center dark:border-2 dark:border-gray-800">
+                <span className={`absolute top-0 right-0 block h-5 w-5 rounded-full bg-red-500 text-white text-xs flex items-center justify-center dark:border-2 dark:border-gray-800 ${animateBell ? 'animate-bounce-sm' : ''}`}>
                   {unreadCount}
                 </span>
               )}
@@ -873,8 +888,11 @@ function Topbar({ user, onToggleSidebar, notifications, setNotifications, onNavi
               <div className="absolute right-0 mt-2 w-80 bg-white dark:bg-gray-800 rounded-lg shadow-xl border dark:border-gray-700 z-20 animate-in fade-in-0 zoom-in-95">
                 <div className="p-4 flex justify-between items-center border-b dark:border-gray-700">
                   <h4 className="font-semibold text-gray-800 dark:text-gray-200">Notifications</h4>
-                  {unreadCount > 0 && (
-                    <button onClick={markAllAsRead} className="text-sm text-indigo-600 hover:underline">Mark all as read</button>
+                  {notifications.length > 0 && (
+                    <div className="flex gap-4">
+                      {unreadCount > 0 && <button onClick={markAllAsRead} className="text-sm text-indigo-600 hover:underline">Mark all as read</button>}
+                      <button onClick={clearAllNotifications} className="text-sm text-red-600 hover:underline">Clear All</button>
+                    </div>
                   )}
                 </div>
                 <div className="max-h-96 overflow-y-auto">
