@@ -846,13 +846,6 @@ function Topbar({ user, onToggleSidebar, notifications, setNotifications, onNavi
         </button>
         
         <div className="flex items-center gap-6">
-          <button onClick={onToggleTheme} className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition">
-            {theme === 'light' ? (
-              <Moon className="w-5 h-5 text-gray-600" />
-            ) : (
-              <Sun className="w-5 h-5 text-yellow-400" />
-            )}
-          </button>
           <div className="flex items-center gap-2 ml-8">
             {lastRefreshed && (
               <span className="text-xs text-gray-500 dark:text-gray-400 w-24 text-right">Refreshed {timeAgo}</span>
@@ -861,6 +854,13 @@ function Topbar({ user, onToggleSidebar, notifications, setNotifications, onNavi
               <RefreshCw className={`w-5 h-5 text-blue-600 ${isRefreshing ? 'animate-pulse' : ''}`} />
             </button>
           </div>
+          <button onClick={onToggleTheme} className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition">
+            {theme === 'light' ? (
+              <Moon className="w-5 h-5 text-gray-600" />
+            ) : (
+              <Sun className="w-5 h-5 text-yellow-400" />
+            )}
+          </button>
           <div className="relative" ref={notificationsRef}>
             <button onClick={() => setShowNotifications(prev => !prev)} className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition relative">
               <Bell className="w-6 h-6 text-gray-600 dark:text-gray-300" />
@@ -1636,8 +1636,8 @@ function Analytics({ refreshKey }) {
           api.getExpenses({ limit: 10000, start_date: allTimeStartDate }),
         ]);
 
-        const periodSales = allSales.sales.filter(s => new Date(s.created_at) >= periodRange.start);
-        const periodExpenses = allExpenses.expenses.filter(e => new Date(e.date) >= periodRange.start);
+        const periodSales = allSales.sales.filter(s => { const d = new Date(s.created_at); return d >= periodRange.start && d <= periodRange.end; });
+        const periodExpenses = allExpenses.expenses.filter(e => { const d = new Date(e.date); return d >= periodRange.start && d <= periodRange.end; });
 
         const totalRevenue = periodSales.reduce((sum, s) => sum + parseFloat(s.total_amount), 0);
         const totalExpenses = periodExpenses.reduce((sum, e) => sum + parseFloat(e.amount), 0);
