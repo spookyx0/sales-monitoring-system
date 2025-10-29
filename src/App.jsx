@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { BarChart3, Package, DollarSign, TrendingUp, AlertTriangle, Users, LogOut, Menu, X, Plus, Edit, Trash2, Search, Calendar, ShoppingCart, Minus, FileText, CheckCircle, XCircle, Loader2, Bell, RefreshCw, ChevronsUpDown, ChevronUp, ChevronDown, ArrowUp, ArrowDown, RotateCw } from 'lucide-react';
+import { BarChart3, Package, DollarSign, TrendingUp, AlertTriangle, Users, LogOut, Menu, X, Plus, Edit, Trash2, Search, Calendar, ShoppingCart, Minus, FileText, CheckCircle, XCircle, Loader2, Bell, RefreshCw, ChevronsUpDown, ChevronUp, ChevronDown, ArrowUp, ArrowDown, RotateCw, User, Lock } from 'lucide-react';
 import api from './api';
 
 const StatusContext = React.createContext();
@@ -125,68 +125,163 @@ function App() {
 function LoginPage({ onLogin }) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [rememberMe, setRememberMe] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(false);
   const showStatus = React.useContext(StatusContext);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
+    setError(false);
     try {
       const authData = await api.login(username, password);
       onLogin(authData);
-      // No success message needed here as the app transitions
     } catch (err) {
       console.error(err);
       showStatus('error', err.message || 'Login failed. Please check your credentials.');
+      setError(true);
+      setTimeout(() => setError(false), 500);
     }
     setLoading(false);
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center p-4">
-      <div className="bg-white rounded-lg shadow-2xl p-8 w-full max-w-md">
-        <div className="text-center mb-8">
-          <BarChart3 className="w-16 h-16 text-indigo-600 mx-auto mb-4" />
-          <h1 className="text-3xl font-bold text-gray-800">Sales Monitor</h1>
-          <p className="text-gray-600 mt-2">Sign in to your account</p>
+    <div className="min-h-screen bg-gradient-to-br from-indigo-950 via-purple-950 to-indigo-900 relative overflow-hidden">
+      {/* Animated background blur effects */}
+      <div className="absolute top-20 left-1/4 w-96 h-96 bg-purple-500 rounded-full mix-blend-screen filter blur-3xl opacity-30 animate-pulse"></div>
+      <div className="absolute bottom-20 right-1/4 w-96 h-96 bg-blue-500 rounded-full mix-blend-screen filter blur-3xl opacity-30 animate-pulse" style={{ animationDelay: '1s' }}></div>
+      <div className="absolute top-1/2 left-1/2 w-96 h-96 bg-pink-500 rounded-full mix-blend-screen filter blur-3xl opacity-20 animate-pulse" style={{ animationDelay: '2s' }}></div>
+
+      {/* Navigation */}
+      <nav className="relative z-10 flex items-center justify-between px-6 py-6 md:px-12">
+        <div className="flex items-center gap-3">
+          <BarChart3 className="w-8 h-8 text-cyan-400" />
+          <span className="text-white font-semibold text-xl tracking-wider">
+            Sales Monitoring
+          </span>
         </div>
-        
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Username</label>
-            <input
-              type="text"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-              required
-            />
-          </div>
-          
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-              required
-            />
-          </div>
-          
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full flex items-center justify-center bg-indigo-600 text-white py-2 rounded-lg font-semibold hover:bg-indigo-700 transition disabled:opacity-50"
-          >
-            {loading ? (
-              <>
-                <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                Signing in...
-              </>
-            ) : 'Sign In'}
+
+        {/* Desktop Navigation */}
+        <div className="hidden md:flex items-center space-x-8">
+          <a href="#about" className="text-white hover:text-cyan-400 transition-colors text-sm font-light tracking-wide">
+            ABOUT
+          </a>
+          <a href="#contact" className="text-white hover:text-cyan-400 transition-colors text-sm font-light tracking-wide">
+            CONTACT
+          </a>
+          <button className="bg-gradient-to-r from-cyan-500 to-blue-500 text-white px-6 py-2 rounded-full text-sm font-medium hover:shadow-lg hover:shadow-cyan-500/50 transition-all">
+            SIGN IN
           </button>
-        </form>
+        </div>
+
+        {/* Mobile Menu Button */}
+        <button
+          className="md:hidden text-white"
+          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+        >
+          {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+        </button>
+      </nav>
+
+      {/* Mobile Menu */}
+      {mobileMenuOpen && (
+        <div className="md:hidden absolute top-20 left-0 right-0 bg-indigo-950/95 backdrop-blur-lg z-20 p-6 space-y-4">
+          <a href="#about" className="block text-white hover:text-cyan-400 transition-colors text-sm font-light tracking-wide">
+            ABOUT
+          </a>
+          <a href="#contact" className="block text-white hover:text-cyan-400 transition-colors text-sm font-light tracking-wide">
+            CONTACT
+          </a>
+          <button className="w-full bg-gradient-to-r from-cyan-500 to-blue-500 text-white px-6 py-2 rounded-full text-sm font-medium">
+            SIGN IN
+          </button>
+        </div>
+      )}
+
+      {/* Main Content */}
+      <div className="relative z-10 flex flex-col md:flex-row items-center justify-center gap-x-20 px-6 md:px-12 py-12 md:py-0 min-h-[calc(100vh-100px)]">
+        {/* Login Form - Added slide-in animation */}
+        <div className="w-full md:w-auto mb-12 md:mb-0 animate-in fade-in-0 slide-in-from-left-10 duration-1000">
+          <div className={`bg-indigo-950/40 backdrop-blur-xl rounded-3xl p-8 md:p-10 w-full md:w-96 border border-indigo-800/30 shadow-2xl ${error ? 'animate-shake' : ''}`}>
+            {/* User Icon */}
+            <div className="flex justify-center mb-8">
+              <div className="w-20 h-20 rounded-full border-2 border-cyan-400 flex items-center justify-center bg-indigo-900/50">
+                <svg className="w-10 h-10 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                </svg>
+              </div>
+            </div>
+
+            {/* Form */}
+            <form onSubmit={handleSubmit} className="space-y-6">
+              {/* Username Input */}
+              <div className="relative">
+                <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
+                  <User className="w-5 h-5" />
+                </div>
+                <input
+                  type="text"
+                  placeholder="USERNAME"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  className="w-full bg-indigo-900/50 border border-indigo-700/50 rounded-full px-12 py-3 text-white placeholder-gray-400 text-sm focus:outline-none focus:border-cyan-400 transition-colors"
+                />
+              </div>
+
+              {/* Password Input */}
+              <div className="relative">
+                <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
+                  <Lock className="w-5 h-5" />
+                </div>
+                <input
+                  type="password"
+                  placeholder="••••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full bg-indigo-900/50 border border-indigo-700/50 rounded-full px-12 py-3 text-white placeholder-gray-400 text-sm focus:outline-none focus:border-cyan-400 transition-colors"
+                />
+              </div>
+
+              {/* Login Button */}
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full bg-gradient-to-r from-pink-500 to-purple-500 text-white py-3 rounded-full font-medium hover:shadow-lg hover:shadow-pink-500/50 transition-all text-sm tracking-wider disabled:opacity-50"
+              >
+                {loading ? 'LOGGING IN...' : 'LOGIN'}
+              </button>
+
+              {/* Remember Me & Forgot Password */}
+              <div className="flex items-center justify-between text-xs">
+                <label className="flex items-center space-x-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={rememberMe}
+                    onChange={(e) => setRememberMe(e.target.checked)}
+                    className="w-4 h-4 rounded border-indigo-700 bg-indigo-900/50 text-cyan-500 focus:ring-cyan-500 focus:ring-offset-0"
+                  />
+                  <span className="text-gray-300">Remember me</span>
+                </label>
+                <a href="#forgot" className="text-gray-300 hover:text-cyan-400 transition-colors">
+                  Forgot your password?
+                </a>
+              </div>
+            </form>
+          </div>
+        </div>
+
+        {/* Welcome Section */}
+        <div className="w-full md:w-auto text-center md:text-left md:ml-20">
+          <h1 className="text-5xl md:text-6xl font-bold text-white mb-6 leading-tight">
+            Monitor Your Sales,<br />
+            Boost Your Success.
+          </h1>
+          <p className="text-gray-300 text-sm md:text-base max-w-md mb-8">
+            Sign in to access your dashboard and gain valuable insights into your business performance.
+          </p>
+        </div>
       </div>
     </div>
   );
