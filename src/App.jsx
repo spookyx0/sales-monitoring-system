@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { BarChart3, Package, DollarSign, TrendingUp, AlertTriangle, Users, LogOut, Menu, X, Plus, Edit, Trash2, Search, Calendar, ShoppingCart, Minus, FileText, CheckCircle, XCircle, Loader2, Bell, RefreshCw, ChevronsUpDown, ChevronUp, ChevronDown, ArrowUp, ArrowDown, RotateCw, User, Lock } from 'lucide-react';
+import { BarChart3, Package, DollarSign, TrendingUp, AlertTriangle, Users, LogOut, Menu, X, Plus, Edit, Trash2, Search, Calendar, ShoppingCart, Minus, FileText, CheckCircle, XCircle, Loader2, Bell, RefreshCw, ChevronsUpDown, ChevronUp, ChevronDown, ArrowUp, ArrowDown, RotateCw, User, Lock, Mail, MessageSquare, Send, Building, Target, Linkedin, Github } from 'lucide-react';
 import api from './api';
 
 const StatusContext = React.createContext();
@@ -10,6 +10,7 @@ function App() {
   const [refreshKey, setRefreshKey] = useState(0);
   const [lastRefreshed, setLastRefreshed] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [publicPage, setPublicPage] = useState('login');
   const [loading, setLoading] = useState(true);
   const [status, setStatus] = useState({ isOpen: false, type: '', message: '' });
   const [notifications, setNotifications] = useState([]);
@@ -90,8 +91,16 @@ function App() {
     <StatusContext.Provider value={showStatus}>
       {loading ? (
         <div className="flex h-screen items-center justify-center">Loading...</div>
-      ) : !auth ? (
-        <LoginPage onLogin={handleLogin} />
+      ) : !auth ? ( // Public pages
+        publicPage === 'login' ? (
+          <LoginPage onLogin={handleLogin} onNavigate={setPublicPage} />
+        ) : publicPage === 'contact' ? (
+          <ContactPage onNavigate={setPublicPage} />
+        ) : publicPage === 'about' ? (
+          <AboutPage onNavigate={setPublicPage} />
+        ) : (
+          <LoginPage onLogin={handleLogin} onNavigate={setPublicPage} />
+        )
       ) : (
         <div className="flex h-screen bg-gray-50">
           <Sidebar open={sidebarOpen} currentPage={currentPage} onNavigate={handleNavigate} onLogout={handleLogout} />
@@ -122,7 +131,64 @@ function App() {
   );
 }
 
-function LoginPage({ onLogin }) {
+function PublicNav({ activePage, onNavigate }) {
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  const navItems = [
+    { id: 'about', label: 'ABOUT' },
+    { id: 'contact', label: 'CONTACT' },
+    { id: 'login', label: 'SIGN IN' },
+  ];
+
+  const baseLinkClasses = "transition-colors text-sm tracking-wide";
+  const activeLinkClasses = "bg-gradient-to-r from-cyan-500 to-blue-500 text-white px-6 py-2 rounded-full font-medium hover:shadow-lg hover:shadow-cyan-500/50 transition-all";
+  const inactiveLinkClasses = "text-white hover:text-cyan-400 font-light";
+
+  return (
+    <>
+      <nav className="relative z-10 flex items-center justify-between px-6 py-6 md:px-12">
+        <div className="flex items-center gap-3 cursor-pointer" onClick={() => onNavigate('login')}>
+          <BarChart3 className="w-8 h-8 text-cyan-400" />
+          <span className="text-white font-semibold text-xl tracking-wider">
+            Sales Monitoring
+          </span>
+        </div>
+
+        {/* Desktop Navigation */}
+        <div className="hidden md:flex items-center space-x-8">
+          {navItems.map(item => (
+            <a
+              key={item.id}
+              href="#!"
+              onClick={(e) => { e.preventDefault(); onNavigate(item.id); }}
+              className={`${baseLinkClasses} ${activePage === item.id ? activeLinkClasses : inactiveLinkClasses}`}
+            >
+              {item.label}
+            </a>
+          ))}
+        </div>
+
+        {/* Mobile Menu Button */}
+        <button className="md:hidden text-white" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
+          {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+        </button>
+      </nav>
+
+      {/* Mobile Menu */}
+      {mobileMenuOpen && (
+        <div className="md:hidden absolute top-20 left-0 right-0 bg-indigo-950/95 backdrop-blur-lg z-20 p-6 space-y-4">
+          {navItems.map(item => (
+             <a key={item.id} href="#!" onClick={(e) => { e.preventDefault(); onNavigate(item.id); setMobileMenuOpen(false); }} className={`block text-center p-2 rounded-full ${baseLinkClasses} ${activePage === item.id ? 'bg-cyan-500 text-white' : 'text-white'}`}>
+              {item.label}
+            </a>
+          ))}
+        </div>
+      )}
+    </>
+  );
+}
+
+function LoginPage({ onLogin, onNavigate }) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
@@ -154,51 +220,7 @@ function LoginPage({ onLogin }) {
       <div className="absolute bottom-20 right-1/4 w-96 h-96 bg-blue-500 rounded-full mix-blend-screen filter blur-3xl opacity-30 animate-pulse" style={{ animationDelay: '1s' }}></div>
       <div className="absolute top-1/2 left-1/2 w-96 h-96 bg-pink-500 rounded-full mix-blend-screen filter blur-3xl opacity-20 animate-pulse" style={{ animationDelay: '2s' }}></div>
 
-      {/* Navigation */}
-      <nav className="relative z-10 flex items-center justify-between px-6 py-6 md:px-12">
-        <div className="flex items-center gap-3">
-          <BarChart3 className="w-8 h-8 text-cyan-400" />
-          <span className="text-white font-semibold text-xl tracking-wider">
-            Sales Monitoring
-          </span>
-        </div>
-
-        {/* Desktop Navigation */}
-        <div className="hidden md:flex items-center space-x-8">
-          <a href="#about" className="text-white hover:text-cyan-400 transition-colors text-sm font-light tracking-wide">
-            ABOUT
-          </a>
-          <a href="#contact" className="text-white hover:text-cyan-400 transition-colors text-sm font-light tracking-wide">
-            CONTACT
-          </a>
-          <button className="bg-gradient-to-r from-cyan-500 to-blue-500 text-white px-6 py-2 rounded-full text-sm font-medium hover:shadow-lg hover:shadow-cyan-500/50 transition-all">
-            SIGN IN
-          </button>
-        </div>
-
-        {/* Mobile Menu Button */}
-        <button
-          className="md:hidden text-white"
-          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-        >
-          {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
-        </button>
-      </nav>
-
-      {/* Mobile Menu */}
-      {mobileMenuOpen && (
-        <div className="md:hidden absolute top-20 left-0 right-0 bg-indigo-950/95 backdrop-blur-lg z-20 p-6 space-y-4">
-          <a href="#about" className="block text-white hover:text-cyan-400 transition-colors text-sm font-light tracking-wide">
-            ABOUT
-          </a>
-          <a href="#contact" className="block text-white hover:text-cyan-400 transition-colors text-sm font-light tracking-wide">
-            CONTACT
-          </a>
-          <button className="w-full bg-gradient-to-r from-cyan-500 to-blue-500 text-white px-6 py-2 rounded-full text-sm font-medium">
-            SIGN IN
-          </button>
-        </div>
-      )}
+      <PublicNav activePage="login" onNavigate={onNavigate} />
 
       {/* Main Content */}
       <div className="relative z-10 flex flex-col md:flex-row items-center justify-center gap-x-20 px-6 md:px-12 py-12 md:py-0 min-h-[calc(100vh-100px)]">
@@ -281,6 +303,203 @@ function LoginPage({ onLogin }) {
           <p className="text-gray-300 text-sm md:text-base max-w-md mb-8">
             Sign in to access your dashboard and gain valuable insights into your business performance.
           </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ContactPage({ onNavigate }) {
+  const [form, setForm] = useState({ name: '', email: '', message: '' });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const showStatus = React.useContext(StatusContext);
+
+  const handleChange = (e) => {
+    setForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError(false);
+    setLoading(true);
+    try {
+      // In a real app, you would have an API endpoint for this.
+      // await api.sendContactEmail(form); 
+      await new Promise(resolve => setTimeout(resolve, 1500)); // Mock API call
+      showStatus('success', "Your message has been sent! We'll get back to you soon.");
+      setForm({ name: '', email: '', message: '' });
+    } catch (err) {
+      console.error(err);
+      showStatus('error', err.message || 'Failed to send message. Please try again later.');
+      setError(true);
+      setTimeout(() => setError(false), 500);
+    }
+    setLoading(false);
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-indigo-950 via-purple-950 to-indigo-900 relative overflow-hidden">
+      {/* Animated background blur effects */}
+      <div className="absolute top-20 left-1/4 w-96 h-96 bg-purple-500 rounded-full mix-blend-screen filter blur-3xl opacity-30 animate-pulse"></div>
+      <div className="absolute bottom-20 right-1/4 w-96 h-96 bg-blue-500 rounded-full mix-blend-screen filter blur-3xl opacity-30 animate-pulse" style={{ animationDelay: '1s' }}></div>
+      <div className="absolute top-1/2 left-1/2 w-96 h-96 bg-pink-500 rounded-full mix-blend-screen filter blur-3xl opacity-20 animate-pulse" style={{ animationDelay: '2s' }}></div>
+
+      <PublicNav activePage="contact" onNavigate={onNavigate} />
+
+      {/* Main Content */}
+      <div className="relative z-10 flex flex-col items-center justify-center px-6 md:px-12 py-12 md:py-0 min-h-[calc(100vh-100px)]">
+        <div className="w-full md:w-auto text-center mb-12 animate-in fade-in-0 slide-in-from-top-10 duration-1000">
+          <h1 className="text-5xl md:text-6xl font-bold text-white mb-4 leading-tight">
+            Get In Touch
+          </h1>
+          <p className="text-gray-300 text-sm md:text-base max-w-xl mx-auto">
+            Have a question or feedback? We'd love to hear from you. Fill out the form below and we'll get back to you as soon as possible.
+          </p>
+        </div>
+
+        {/* Contact Form */}
+        <div className="w-full md:w-auto mb-12 md:mb-0 animate-in fade-in-0 slide-in-from-bottom-10 duration-1000">
+          <div className={`bg-indigo-950/40 backdrop-blur-xl rounded-3xl p-8 md:p-10 w-full max-w-lg border border-indigo-800/30 shadow-2xl ${error ? 'animate-shake' : ''}`}>
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Name Input */}
+                <div className="relative">
+                  <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
+                    <User className="w-5 h-5" />
+                  </div>
+                  <input
+                    type="text" name="name" placeholder="YOUR NAME" value={form.name} onChange={handleChange} required
+                    className="w-full bg-indigo-900/50 border border-indigo-700/50 rounded-full px-12 py-3 text-white placeholder-gray-400 text-sm focus:outline-none focus:border-cyan-400 transition-colors"
+                  />
+                </div>
+                {/* Email Input */}
+                <div className="relative">
+                  <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
+                    <Mail className="w-5 h-5" />
+                  </div>
+                  <input
+                    type="email" name="email" placeholder="YOUR EMAIL" value={form.email} onChange={handleChange} required
+                    className="w-full bg-indigo-900/50 border border-indigo-700/50 rounded-full px-12 py-3 text-white placeholder-gray-400 text-sm focus:outline-none focus:border-cyan-400 transition-colors"
+                  />
+                </div>
+              </div>
+
+              {/* Message Textarea */}
+              <div className="relative">
+                <div className="absolute left-4 top-4 text-gray-400">
+                  <MessageSquare className="w-5 h-5" />
+                </div>
+                <textarea
+                  name="message" placeholder="YOUR MESSAGE" value={form.message} onChange={handleChange} required rows="5"
+                  className="w-full bg-indigo-900/50 border border-indigo-700/50 rounded-2xl px-12 py-3 text-white placeholder-gray-400 text-sm focus:outline-none focus:border-cyan-400 transition-colors"
+                />
+              </div>
+
+              {/* Submit Button */}
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full bg-gradient-to-r from-pink-500 to-purple-500 text-white py-3 rounded-full font-medium hover:shadow-lg hover:shadow-pink-500/50 transition-all text-sm tracking-wider disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {loading ? (
+                  <>
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                    SENDING...
+                  </>
+                ) : (
+                  <>
+                    SEND MESSAGE <Send className="w-4 h-4" />
+                  </>
+                )}
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function AboutPage({ onNavigate }) {
+  const teamMembers = [
+    { name: 'Ken Kerk', role: 'Lead Developer', bio: 'The architect of this system, passionate about creating efficient and elegant solutions.', avatar: 'https://i.pravatar.cc/150?u=ken', linkedin: '#', github: '#' },
+    { name: 'Jane Doe', role: 'UI/UX Designer', bio: 'The creative mind behind the intuitive and beautiful user interface.', avatar: 'https://i.pravatar.cc/150?u=jane', linkedin: '#', github: '#' },
+    { name: 'John Smith', role: 'Project Manager', bio: 'Ensuring the project stays on track and meets all the requirements.', avatar: 'https://i.pravatar.cc/150?u=john', linkedin: '#', github: '#' },
+  ];
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-indigo-950 via-purple-950 to-indigo-900 relative overflow-hidden text-white">
+      {/* Animated background blur effects */}
+      <div className="absolute top-20 left-1/4 w-96 h-96 bg-purple-500 rounded-full mix-blend-screen filter blur-3xl opacity-30 animate-pulse"></div>
+      <div className="absolute bottom-20 right-1/4 w-96 h-96 bg-blue-500 rounded-full mix-blend-screen filter blur-3xl opacity-30 animate-pulse" style={{ animationDelay: '1s' }}></div>
+      <div className="absolute top-1/2 left-1/2 w-96 h-96 bg-pink-500 rounded-full mix-blend-screen filter blur-3xl opacity-20 animate-pulse" style={{ animationDelay: '2s' }}></div>
+
+      <PublicNav activePage="about" onNavigate={onNavigate} />
+
+      {/* Main Content */}
+      <div className="relative z-10 container mx-auto px-6 py-16">
+        {/* Hero Section */}
+        <div className="text-center animate-in fade-in-0 slide-in-from-top-10 duration-1000">
+          <h1 className="text-5xl md:text-7xl font-bold mb-4">About Sales Monitoring</h1>
+          <p className="text-lg md:text-xl text-gray-300 max-w-3xl mx-auto">
+            An innovative platform designed to provide real-time insights and analytics for your business, empowering you to make data-driven decisions.
+          </p>
+        </div>
+
+        {/* Mission & Vision Section */}
+        <div className="grid md:grid-cols-2 gap-12 mt-24 text-center md:text-left">
+          <div className="animate-in fade-in-0 slide-in-from-left-20 duration-1000 delay-200">
+            <div className="flex items-center justify-center md:justify-start gap-3 mb-4">
+              <Building className="w-8 h-8 text-cyan-400" />
+              <h2 className="text-3xl font-bold">Our Mission</h2>
+            </div>
+            <p className="text-gray-300 leading-relaxed">
+              To simplify sales tracking and provide powerful, accessible analytics for businesses of all sizes. We believe that every business deserves the tools to understand their performance and unlock their full potential.
+            </p>
+          </div>
+          <div className="animate-in fade-in-0 slide-in-from-right-20 duration-1000 delay-200">
+            <div className="flex items-center justify-center md:justify-start gap-3 mb-4">
+              <Target className="w-8 h-8 text-cyan-400" />
+              <h2 className="text-3xl font-bold">Our Vision</h2>
+            </div>
+            <p className="text-gray-300 leading-relaxed">
+              To become the leading platform for sales analytics, known for our commitment to user-centric design, data accuracy, and continuous innovation that helps our clients thrive in a competitive marketplace.
+            </p>
+          </div>
+        </div>
+
+        {/* Team Section */}
+        <div className="mt-24">
+          <h2 className="text-4xl font-bold text-center mb-12 animate-in fade-in-0 duration-1000 delay-300">Meet the Team</h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
+            {teamMembers.map((member, i) => (
+              <div key={member.name} className="[perspective:1000px] animate-in fade-in-0 zoom-in-90 duration-1000" style={{ animationDelay: `${400 + i * 150}ms`}}>
+                <div className="relative h-80 w-full rounded-2xl shadow-2xl transition-all duration-500 [transform-style:preserve-3d] group-hover:[transform:rotateY(180deg)]">
+                  {/* Front of Card */}
+                  <div className="absolute inset-0 bg-indigo-950/40 backdrop-blur-xl rounded-2xl border border-indigo-800/30 p-6 flex flex-col items-center justify-center text-center [backface-visibility:hidden]">
+                    <img src={member.avatar} alt={member.name} className="w-28 h-28 rounded-full border-4 border-cyan-400 mb-4" />
+                    <h3 className="text-xl font-bold">{member.name}</h3>
+                    <p className="text-cyan-400 font-medium">{member.role}</p>
+                  </div>
+                  {/* Back of Card */}
+                  <div className="absolute inset-0 bg-indigo-900/80 backdrop-blur-xl rounded-2xl border border-indigo-700/50 p-6 flex flex-col justify-center text-center [transform:rotateY(180deg)] [backface-visibility:hidden]">
+                    <h3 className="text-xl font-bold mb-2">{member.name}</h3>
+                    <p className="text-gray-300 text-sm mb-4">{member.bio}</p>
+                    <div className="flex justify-center gap-4">
+                      <a href={member.linkedin} target="_blank" rel="noopener noreferrer" className="text-gray-300 hover:text-cyan-400 transition-colors">
+                        <Linkedin className="w-6 h-6" />
+                      </a>
+                      <a href={member.github} target="_blank" rel="noopener noreferrer" className="text-gray-300 hover:text-cyan-400 transition-colors">
+                        <Github className="w-6 h-6" />
+                      </a>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </div>
