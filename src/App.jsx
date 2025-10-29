@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { BarChart3, Package, DollarSign, TrendingUp, AlertTriangle, Users, LogOut, Menu, X, Plus, Edit, Trash2, Search, Calendar, ShoppingCart, Minus, FileText, CheckCircle, XCircle, Loader2, Bell, RotateCw, ChevronsUpDown, ChevronUp, ChevronDown, ArrowUp, ArrowDown } from 'lucide-react';
+import { BarChart3, Package, DollarSign, TrendingUp, AlertTriangle, Users, LogOut, Menu, X, Plus, Edit, Trash2, Search, Calendar, ShoppingCart, Minus, FileText, CheckCircle, XCircle, Loader2, Bell, RefreshCw, ChevronsUpDown, ChevronUp, ChevronDown, ArrowUp, ArrowDown, RotateCw } from 'lucide-react';
 import api from './api';
 
 const StatusContext = React.createContext();
@@ -7,7 +7,8 @@ const StatusContext = React.createContext();
 function App() {
   const [auth, setAuth] = useState(null);
   const [currentPage, setCurrentPage] = useState('dashboard');
-  const [pageState, setPageState] = useState({});
+  const [refreshKey, setRefreshKey] = useState(0);
+  const [lastRefreshed, setLastRefreshed] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [loading, setLoading] = useState(true);
   const [status, setStatus] = useState({ isOpen: false, type: '', message: '' });
@@ -71,10 +72,13 @@ function App() {
     setAuth(null);
   };
 
-  const handleNavigate = (page, state) => {
-    if (state) {
-      setPageState(prev => ({ ...prev, [page]: state }));
-    }
+  const handleRefresh = () => {
+    fetchNotifications();
+    setRefreshKey(prevKey => prevKey + 1);
+    setLastRefreshed(new Date());
+  };
+
+  const handleNavigate = (page) => {
     setCurrentPage(page);
   };
 
@@ -93,15 +97,22 @@ function App() {
           <Sidebar open={sidebarOpen} currentPage={currentPage} onNavigate={handleNavigate} onLogout={handleLogout} />
           
           <div className="flex-1 flex flex-col overflow-hidden">
-            <Topbar user={auth.admin} onToggleSidebar={() => setSidebarOpen(!sidebarOpen)} notifications={notifications} setNotifications={setNotifications} onNavigate={handleNavigate} />
+            <Topbar 
+              user={auth.admin} 
+              onToggleSidebar={() => setSidebarOpen(!sidebarOpen)} 
+              notifications={notifications} 
+              setNotifications={setNotifications} 
+              onNavigate={handleNavigate}
+              onRefresh={handleRefresh}
+              lastRefreshed={lastRefreshed} />
             
             <main className="flex-1 overflow-y-auto p-6">
-              {currentPage === 'dashboard' && <Dashboard onNavigate={handleNavigate} />}
-              {currentPage === 'inventory' && <Inventory setNotifications={setNotifications} user={auth.admin} initialState={pageState.inventory} />}
-              {currentPage === 'sales' && <Sales setNotifications={setNotifications} user={auth.admin} />}
-              {currentPage === 'analytics' && <Analytics />}
-              {currentPage === 'audits' && <Audits />}
-              {currentPage === 'expenses' && <Expenses setNotifications={setNotifications} user={auth.admin} />}
+              {currentPage === 'dashboard' && <Dashboard onNavigate={handleNavigate} refreshKey={refreshKey} />}
+              {currentPage === 'inventory' && <Inventory setNotifications={setNotifications} user={auth.admin} refreshKey={refreshKey} />}
+              {currentPage === 'sales' && <Sales setNotifications={setNotifications} user={auth.admin} refreshKey={refreshKey} />}
+              {currentPage === 'analytics' && <Analytics refreshKey={refreshKey} />}
+              {currentPage === 'audits' && <Audits refreshKey={refreshKey} />}
+              {currentPage === 'expenses' && <Expenses setNotifications={setNotifications} user={auth.admin} refreshKey={refreshKey} />}
             </main>
           </div>
           {status.isOpen && <StatusModal type={status.type} message={status.message} onClose={closeStatus} />}
@@ -236,10 +247,44 @@ function Sidebar({ open, currentPage, onNavigate, onLogout }) {
   );
 }
 
-function Topbar({ user, onToggleSidebar, notifications, setNotifications, onNavigate, pageState }) {
+function useTimeAgo(date) {
+  const [timeAgo, setTimeAgo] = useState('');
+
+  useEffect(() => {
+    if (!date) {
+      setTimeAgo('');
+      return;
+    }
+
+    const update = () => {
+      const now = new Date();
+      const seconds = Math.floor((now - date) / 1000);
+
+      if (seconds < 5) setTimeAgo('just now');
+      else if (seconds < 60) setTimeAgo(`${seconds}s ago`);
+      else if (seconds < 3600) {
+        const minutes = Math.floor(seconds / 60);
+        setTimeAgo(`${minutes}m ago`);
+      } else {
+        setTimeAgo(date.toLocaleTimeString());
+      }
+    };
+
+    update();
+    const intervalId = setInterval(update, 5000); // Update every 5 seconds
+    return () => clearInterval(intervalId);
+  }, [date]);
+
+  return timeAgo;
+}
+
+function Topbar({ user, onToggleSidebar, notifications, setNotifications, onNavigate, onRefresh, lastRefreshed }) {
   const [showNotifications, setShowNotifications] = useState(false);
   const unreadCount = notifications.filter(n => !n.read).length;
   const notificationsRef = useRef(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const timeAgo = useTimeAgo(lastRefreshed);
+
 
   useEffect(() => {
     function handleClickOutside(event) {
@@ -252,15 +297,21 @@ function Topbar({ user, onToggleSidebar, notifications, setNotifications, onNavi
   }, [notificationsRef]);
 
   const handleNotificationClick = (notification) => {
-    if (notification.type === 'low_stock') {
-      onNavigate('inventory', { lowStock: true });
-    }
     setNotifications(notifications.map(n => n.id === notification.id ? { ...n, read: true } : n));
     setShowNotifications(false);
   };
 
   const markAllAsRead = () => {
     setNotifications(notifications.map(n => ({ ...n, read: true })));
+  };
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    try {
+      await onRefresh();
+    } finally {
+      setIsRefreshing(false);
+    }
   };
 
   return (
@@ -273,7 +324,15 @@ function Topbar({ user, onToggleSidebar, notifications, setNotifications, onNavi
           <Menu className="w-6 h-6 text-gray-600" />
         </button>
         
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-6">
+          <div className="flex items-center gap-2 ml-8">
+            {lastRefreshed && (
+              <span className="text-xs text-gray-500 w-24 text-right">Refreshed {timeAgo}</span>
+            )}
+            <button onClick={handleRefresh} className="p-2 rounded-full hover:bg-gray-100 transition active:scale-90">
+              <RefreshCw className={`w-5 h-5 text-blue-600 ${isRefreshing ? 'animate-pulse' : ''}`} />
+            </button>
+          </div>
           <div className="relative" ref={notificationsRef}>
             <button onClick={() => setShowNotifications(prev => !prev)} className="p-2 rounded-full hover:bg-gray-100 transition relative">
               <Bell className="w-6 h-6 text-gray-600" />
@@ -296,7 +355,7 @@ function Topbar({ user, onToggleSidebar, notifications, setNotifications, onNavi
                     notifications.map(n => (
                       <a
                         key={n.id}
-                        href="#"
+                        href="#!"
                         onClick={(e) => { e.preventDefault(); handleNotificationClick(n); }} className={`block p-4 hover:bg-gray-50 border-b ${!n.read ? 'bg-indigo-50' : ''}`}
                       >
                         <div className="flex items-start gap-3">
@@ -328,10 +387,11 @@ function Topbar({ user, onToggleSidebar, notifications, setNotifications, onNavi
   );
 }
 
-function Dashboard({ onNavigate }) {
+function Dashboard({ onNavigate, refreshKey }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showLowStockModal, setShowLowStockModal] = useState(false);
+
 
   useEffect(() => {
     const fetchData = async () => {
@@ -346,7 +406,7 @@ function Dashboard({ onNavigate }) {
     };
 
     fetchData();
-  }, []); // This should call the new getOverview endpoint
+  }, [refreshKey]); // This should call the new getOverview endpoint
 
   if (loading || !data) return <div>Loading...</div>;
 
@@ -617,7 +677,7 @@ function TopStockItems({ items, onNavigate }) {
   );
 }
 
-function Inventory({ setNotifications, user }) {
+function Inventory({ setNotifications, user, refreshKey }) {
   const [items, setItems] = useState([]);
   const [showForm, setShowForm] = useState(false);
   const [editItem, setEditItem] = useState(null);
@@ -656,7 +716,7 @@ function Inventory({ setNotifications, user }) {
 
   useEffect(() => {
     fetchItems();
-  }, [fetchItems]); // Now fetchItems is a stable dependency
+  }, [fetchItems, refreshKey]); // Now fetchItems is a stable dependency
 
   // Handlers for item creation/update/deletion
   const handleSave = async (itemId, formData) => {
@@ -1000,7 +1060,7 @@ function Inventory({ setNotifications, user }) {
   );
 }
 
-function Analytics() {
+function Analytics({ refreshKey }) {
   const [timePeriod, setTimePeriod] = useState('monthly'); // daily, weekly, monthly, yearly
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -1145,7 +1205,7 @@ function Analytics() {
       }
     };
     fetchAnalyticsData();
-  }, [timePeriod, showStatus, selectedMonth]);
+  }, [timePeriod, showStatus, selectedMonth, refreshKey]);
 
   if (loading) return <div>Loading analytics...</div>;
   if (!data) return <div>Could not load analytics data.</div>;
@@ -1348,7 +1408,7 @@ function useDebounce(value, delay) {
   return debouncedValue;
 }
 
-function Audits() {
+function Audits({ refreshKey }) {
   const [audits, setAudits] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalAudits, setTotalAudits] = useState(0);
@@ -1371,7 +1431,7 @@ function Audits() {
 
   useEffect(() => {
     fetchAudits();
-  }, [fetchAudits]);
+  }, [fetchAudits, refreshKey]);
 
   const actionColors = {
     CREATE: 'bg-green-100 text-green-700',
@@ -1483,7 +1543,7 @@ function Audits() {
   );
 }
 
-function Expenses({ setNotifications, user }) {
+function Expenses({ setNotifications, user, refreshKey }) {
   const [expenses, setExpenses] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [expenseStats, setExpenseStats] = useState(null);
@@ -1523,7 +1583,7 @@ function Expenses({ setNotifications, user }) {
   useEffect(() => {
     fetchExpenses();
     fetchStats();
-  }, [fetchExpenses, fetchStats]);
+  }, [fetchExpenses, fetchStats, refreshKey]);
 
   const validateForm = () => {
     const errors = {};
@@ -2257,7 +2317,7 @@ function ItemFormModal({ item, onClose, onSave }) {
   );
 }
 
-function Sales({ setNotifications, user }) {
+function Sales({ setNotifications, user, refreshKey }) {
   const [sales, setSales] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalSales, setTotalSales] = useState(0);
@@ -2279,7 +2339,7 @@ function Sales({ setNotifications, user }) {
 
   useEffect(() => {
     fetchSales();
-  }, [fetchSales]);
+  }, [fetchSales, refreshKey]);
 
   const handleSaleCreated = () => { // This function is called after a new sale is successfully created
     setShowSaleModal(false); // Close the modal
