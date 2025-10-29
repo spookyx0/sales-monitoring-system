@@ -7,3 +7,30 @@
     transform-style: preserve-3d;
   }
 }
+
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  .printable-area, .printable-area * {
+    visibility: visible;
+  }
+  .printable-area {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+  }
+  .no-print {
+    display: none !important;
+  }
+  .receipt {
+    font-size: 10pt;
+    color: black !important;
+    background-color: white !important;
+    box-shadow: none;
+    border: none;
+    max-height: none;
+    overflow: visible;
+  }
+}

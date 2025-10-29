@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { BarChart3, Package, DollarSign, TrendingUp, AlertTriangle, Users, LogOut, Menu, X, Plus, Edit, Trash2, Search, Calendar, ShoppingCart, Minus, FileText, CheckCircle, XCircle, Loader2, Bell, RefreshCw, ChevronsUpDown, ChevronUp, ChevronDown, ArrowUp, ArrowDown, RotateCw, User, Lock, Mail, MessageSquare, Send, Building, Target, Linkedin, Github, Instagram, Facebook, KeyRound } from 'lucide-react';
+import { BarChart3, Package, DollarSign, TrendingUp, AlertTriangle, Users, LogOut, Menu, X, Plus, Edit, Trash2, Search, Calendar, ShoppingCart, Minus, FileText, CheckCircle, XCircle, Loader2, Bell, RefreshCw, ChevronsUpDown, ChevronUp, ChevronDown, ArrowUp, ArrowDown, RotateCw, User, Lock, Mail, MessageSquare, Send, Building, Target, Linkedin, Github, Instagram, Facebook, KeyRound, Printer } from 'lucide-react';
 import api from './api';
 
 const StatusContext = React.createContext();
@@ -2625,6 +2625,79 @@ function LowStockModal({ onClose }) {
   );
 }
 
+function ReceiptModal({ sale, onClose }) {
+  const printRef = useRef();
+
+  const handlePrint = () => {
+    window.print();
+  };
+
+  const subtotal = sale.items.reduce((sum, item) => sum + (item.quantity * parseFloat(item.price_at_sale)), 0);
+
+  return (
+    <div className="printable-area fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-sm flex flex-col animate-in fade-in-0 zoom-in-95">
+        <div className="p-4 border-b flex justify-between items-center no-print">
+          <h3 className="text-lg font-bold text-gray-800">Receipt Preview</h3>
+          <button onClick={onClose} className="p-1 rounded-full text-gray-400 hover:bg-gray-100 transition-colors">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* POS-style Receipt */}
+        <div ref={printRef} className="receipt p-6 overflow-y-auto font-mono text-sm text-black">
+          <div className="text-center">
+            <h2 className="text-xl font-bold">Sales Monitoring</h2>
+            <p>123 Business Rd.</p>
+            <p>Business City, 12345</p>
+            <p className="mt-2">--- SALE RECEIPT ---</p>
+          </div>
+
+          <div className="my-4 border-t border-b border-dashed border-black py-2">
+            <p>Sale #: {sale.sale_number || 'N/A'}</p>
+            <p>Date: {new Date(sale.created_at || Date.now()).toLocaleString()}</p>
+            <p>Cashier: {sale.username || 'Admin'}</p>
+          </div>
+
+          <table className="w-full">
+            <thead>
+              <tr>
+                <th className="text-left">ITEM</th>
+                <th className="text-center">QTY</th>
+                <th className="text-right">PRICE</th>
+              </tr>
+            </thead>
+            <tbody>
+              {sale.items.map(item => (
+                <tr key={item.item_id}>
+                  <td>{item.name}</td>
+                  <td className="text-center">{item.quantity}</td>
+                  <td className="text-right">{(item.quantity * item.price_at_sale).toFixed(2)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+
+          <div className="my-4 border-t border-dashed border-black pt-2 space-y-1">
+            <div className="flex justify-between"><p>Subtotal:</p> <p>PHP {subtotal.toFixed(2)}</p></div>
+            <div className="flex justify-between"><p>Tax (8%):</p> <p>PHP {sale.tax_amount.toFixed(2)}</p></div>
+            <div className="flex justify-between font-bold text-base"><p>TOTAL:</p> <p>PHP {sale.total_amount.toFixed(2)}</p></div>
+          </div>
+
+          <div className="text-center mt-6">
+            <p>Thank you for your purchase!</p>
+          </div>
+        </div>
+
+        <div className="p-4 bg-gray-50 border-t flex justify-end gap-3 no-print">
+          <button onClick={onClose} className="px-4 py-2 border rounded-lg hover:bg-gray-100 font-semibold text-gray-700">Close</button>
+          <button onClick={handlePrint} className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-semibold flex items-center gap-2"><Printer className="w-4 h-4" /> Print</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default App;
 
 function ItemFormModal({ item, onClose, onSave }) {
@@ -2826,6 +2899,7 @@ function Sales({ setNotifications, user, refreshKey }) {
   const [sales, setSales] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalSales, setTotalSales] = useState(0);
+  const [saleForReceipt, setSaleForReceipt] = useState(null);
   const [showSaleModal, setShowSaleModal] = useState(false);
   const [viewingSale, setViewingSale] = useState(null);
   const [search, setSearch] = useState('');
@@ -2846,8 +2920,9 @@ function Sales({ setNotifications, user, refreshKey }) {
     fetchSales();
   }, [fetchSales, refreshKey]);
 
-  const handleSaleCreated = () => { // This function is called after a new sale is successfully created
+  const handleSaleCreated = (newSale) => { // This function is called after a new sale is successfully created
     setShowSaleModal(false); // Close the modal
+    setSaleForReceipt(newSale); // Show the receipt for the new sale
     setCurrentPage(1); // Go back to the first page to see the new sale
     setSearch(''); // Clear search
     setNotifications(prev => [{
@@ -2954,6 +3029,9 @@ function Sales({ setNotifications, user, refreshKey }) {
       )}
       {viewingSale && (
         <SaleDetailsModal sale={viewingSale} onClose={() => setViewingSale(null)} />
+      )}
+      {saleForReceipt && (
+        <ReceiptModal sale={saleForReceipt} onClose={() => setSaleForReceipt(null)} />
       )}
     </div>
   );
@@ -3068,7 +3146,7 @@ function NewSaleModal({ onClose, onSaleCreated }) {
         total_amount: total,
       };
       await api.createSale(saleData);
-      onSaleCreated();
+      onSaleCreated(saleData); // Pass sale data to parent to show receipt
       showStatus('success', 'Sale created successfully!');
     } catch (error) {
       console.error('Failed to create sale', error);
