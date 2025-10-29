@@ -3362,6 +3362,16 @@ function NewSaleModal({ onClose, onSaleCreated }) {
     }
   };
 
+  const handleQuantityInputChange = (itemId, value) => {
+    const newQuantity = parseInt(value, 10);
+    if (value === '') {
+      // Allow clearing the input, but treat it as quantity 1 temporarily in cart
+      setCart(cart.map(item => item.item_id === itemId ? { ...item, quantity: '' } : item));
+    } else if (!isNaN(newQuantity) && newQuantity > 0) {
+      setCart(cart.map(item => item.item_id === itemId ? { ...item, quantity: newQuantity } : item));
+    }
+  };
+
   const subtotal = cart.reduce((sum, item) => sum + (item.quantity * parseFloat(item.price_at_sale)), 0);
   const tax = subtotal * 0.08; // Example 8% tax
   const total = subtotal + tax;
@@ -3369,6 +3379,13 @@ function NewSaleModal({ onClose, onSaleCreated }) {
   const handleCreateSale = async () => {
     if (cart.length === 0) {
       showStatus('error', 'Cart is empty. Please add items to proceed.');
+      return;
+    }
+    // Check for empty quantities
+    if (cart.some(item => item.quantity === '' || item.quantity < 1)) {
+      showStatus('error', 'Please enter a valid quantity for all items.');
+      // Optionally, reset empty quantities to 1
+      setCart(cart.map(item => (item.quantity === '' ? { ...item, quantity: 1 } : item)));
       return;
     }
     setLoading(true);
@@ -3433,7 +3450,12 @@ function NewSaleModal({ onClose, onSaleCreated }) {
                     </div>
                     <div className="flex items-center gap-2">
                       <button onClick={() => updateQuantity(item.item_id, item.quantity - 1)} className="p-1 border dark:border-gray-600 rounded dark:text-gray-300"><Minus className="w-4 h-4" /></button>
-                      <span className="w-8 text-center font-medium dark:text-gray-200">{item.quantity}</span>
+                      <input
+                        type="number"
+                        value={item.quantity}
+                        onChange={(e) => handleQuantityInputChange(item.item_id, e.target.value)}
+                        className="w-12 text-center font-medium dark:text-gray-200 bg-transparent border border-gray-300 dark:border-gray-600 rounded-md focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500"
+                      />
                       <button onClick={() => updateQuantity(item.item_id, item.quantity + 1)} className="p-1 border dark:border-gray-600 rounded dark:text-gray-300"><Plus className="w-4 h-4" /></button>
                     </div>
                   </div>
