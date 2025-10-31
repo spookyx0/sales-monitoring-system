@@ -3345,20 +3345,38 @@ function NewSaleModal({ onClose, onSaleCreated }) {
     api.getItems({ limit: 1000 }).then(data => setInventoryItems(data.items));
   }, []);
 
-  const filteredItems = inventoryItems.filter(item =>
-    item.name.toLowerCase().includes(search.toLowerCase()) &&
-    !cart.some(cartItem => cartItem.item_id === item.item_id)
-  );
+  const filteredItems = inventoryItems
+    .map(item => {
+      const cartItem = cart.find(ci => ci.item_id === item.item_id);
+      const availableStock = cartItem ? item.qty_in_stock - cartItem.quantity : item.qty_in_stock;
+      return {
+        ...item,
+        available_stock: availableStock,
+        in_cart: !!cartItem,
+      };
+    })
+    .filter(item => item.name.toLowerCase().includes(search.toLowerCase()));
+
 
   const addToCart = (item) => {
+    if (item.qty_in_stock <= 0) {
+      showStatus('error', `${item.name} is out of stock.`);
+      return;
+    }
     setCart([...cart, { ...item, quantity: 1, price_at_sale: item.selling_price }]);
   };
 
   const updateQuantity = (itemId, newQuantity) => {
     if (newQuantity < 1) {
-      setCart(cart.filter(item => item.item_id !== itemId));
+      setCart(currentCart => currentCart.filter(item => item.item_id !== itemId));
     } else {
-      setCart(cart.map(item => item.item_id === itemId ? { ...item, quantity: newQuantity } : item));
+      const itemInInventory = inventoryItems.find(i => i.item_id === itemId);
+      if (newQuantity > itemInInventory.qty_in_stock) {
+        showStatus('error', `Only ${itemInInventory.qty_in_stock} units of ${itemInInventory.name} in stock.`);
+        setCart(currentCart => currentCart.map(item => item.item_id === itemId ? { ...item, quantity: itemInInventory.qty_in_stock } : item));
+      } else {
+        setCart(currentCart => currentCart.map(item => item.item_id === itemId ? { ...item, quantity: newQuantity } : item));
+      }
     }
   };
 
@@ -3368,7 +3386,13 @@ function NewSaleModal({ onClose, onSaleCreated }) {
       // Allow clearing the input, but treat it as quantity 1 temporarily in cart
       setCart(cart.map(item => item.item_id === itemId ? { ...item, quantity: '' } : item));
     } else if (!isNaN(newQuantity) && newQuantity > 0) {
-      setCart(cart.map(item => item.item_id === itemId ? { ...item, quantity: newQuantity } : item));
+      const itemInInventory = inventoryItems.find(i => i.item_id === itemId);
+      if (newQuantity > itemInInventory.qty_in_stock) {
+        showStatus('error', `Only ${itemInInventory.qty_in_stock} units of ${itemInInventory.name} in stock.`);
+        setCart(cart.map(item => item.item_id === itemId ? { ...item, quantity: itemInInventory.qty_in_stock } : item));
+      } else {
+        setCart(cart.map(item => item.item_id === itemId ? { ...item, quantity: newQuantity } : item));
+      }
     }
   };
 
@@ -3429,9 +3453,13 @@ function NewSaleModal({ onClose, onSaleCreated }) {
                 <div key={item.item_id} className="p-4 flex justify-between items-center hover:bg-gray-50 dark:hover:bg-gray-700/50">
                   <div>
                     <div className="font-medium dark:text-gray-200">{item.name}</div>
-                    <div className="text-sm text-gray-500 dark:text-gray-400">In Stock: {item.qty_in_stock}</div>
+                    <div className="text-sm text-gray-500 dark:text-gray-400">In Stock: {item.available_stock}</div>
                   </div>
-                  <button onClick={() => addToCart(item)} className="p-2 bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-300 rounded-full hover:bg-indigo-200 dark:hover:bg-indigo-900"><Plus className="w-4 h-4" /></button>
+                  <button 
+                    onClick={() => addToCart(item)} 
+                    disabled={item.in_cart || item.qty_in_stock <= 0}
+                    className="p-2 bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-300 rounded-full hover:bg-indigo-200 dark:hover:bg-indigo-900 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed dark:disabled:bg-gray-700 dark:disabled:text-gray-500"
+                  >{item.in_cart ? <CheckCircle className="w-4 h-4" /> : <Plus className="w-4 h-4" />}</button>
                 </div>
               ))}
             </div>
@@ -3451,12 +3479,13 @@ function NewSaleModal({ onClose, onSaleCreated }) {
                     <div className="flex items-center gap-2">
                       <button onClick={() => updateQuantity(item.item_id, item.quantity - 1)} className="p-1 border dark:border-gray-600 rounded dark:text-gray-300"><Minus className="w-4 h-4" /></button>
                       <input
-                        type="number"
+                        type="text"
+                        inputMode="numeric"
                         value={item.quantity}
                         onChange={(e) => handleQuantityInputChange(item.item_id, e.target.value)}
                         className="w-12 text-center font-medium dark:text-gray-200 bg-transparent border border-gray-300 dark:border-gray-600 rounded-md focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500"
                       />
-                      <button onClick={() => updateQuantity(item.item_id, item.quantity + 1)} className="p-1 border dark:border-gray-600 rounded dark:text-gray-300"><Plus className="w-4 h-4" /></button>
+                      <button onClick={() => updateQuantity(item.item_id, (item.quantity || 0) + 1)} className="p-1 border dark:border-gray-600 rounded dark:text-gray-300"><Plus className="w-4 h-4" /></button>
                     </div>
                   </div>
                 ))}
