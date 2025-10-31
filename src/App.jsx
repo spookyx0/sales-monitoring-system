@@ -3397,7 +3397,7 @@ function NewSaleModal({ onClose, onSaleCreated }) {
   };
 
   const subtotal = cart.reduce((sum, item) => sum + (item.quantity * parseFloat(item.price_at_sale)), 0);
-  const tax = subtotal * 0.08; // Example 8% tax
+  const tax = subtotal * 0.12; // Philippine VAT 12%
   const total = subtotal + tax;
 
   const handleCreateSale = async () => {
@@ -3492,7 +3492,7 @@ function NewSaleModal({ onClose, onSaleCreated }) {
             </div>
             <div className="p-6 border-t dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 space-y-3">
               <div className="flex justify-between text-sm"><span className="text-gray-600 dark:text-gray-400">Subtotal</span><span className="font-medium dark:text-gray-200">PHP {subtotal.toFixed(2)}</span></div>
-              <div className="flex justify-between text-sm"><span className="text-gray-600 dark:text-gray-400">Tax (8%)</span><span className="font-medium dark:text-gray-200">PHP {tax.toFixed(2)}</span></div>
+              <div className="flex justify-between text-sm"><span className="text-gray-600 dark:text-gray-400">Tax (12%)</span><span className="font-medium dark:text-gray-200">PHP {tax.toFixed(2)}</span></div>
               <div className="flex justify-between font-bold text-lg"><span className="dark:text-gray-200">Total</span><span className="dark:text-gray-200">PHP {total.toFixed(2)}</span></div>
               <select value={paymentMethod} onChange={e => setPaymentMethod(e.target.value)} className="w-full mt-2 px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200">
                 <option>Cash</option>
@@ -3502,14 +3502,16 @@ function NewSaleModal({ onClose, onSaleCreated }) {
               <button
                 onClick={handleCreateSale}
                 disabled={loading || cart.length === 0}
-                className="w-full mt-2 flex items-center justify-center px-4 py-3 bg-indigo-600 text-white rounded-lg font-semibold hover:bg-indigo-700 disabled:opacity-50 dark:bg-indigo-500 dark:hover:bg-indigo-600"
+                className="w-full mt-2 flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg font-semibold shadow-md hover:shadow-lg hover:from-indigo-700 hover:to-purple-700 transform hover:-translate-y-0.5 transition-all duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 dark:focus:ring-offset-gray-800 disabled:bg-gray-400 disabled:from-gray-400 disabled:to-gray-500 disabled:shadow-none disabled:transform-none disabled:cursor-not-allowed"
               >
                 {loading ? (
                   <>
                     <Loader2 className="mr-2 h-5 w-5 animate-spin" />
                     Processing...
                   </>
-                ) : 'Complete Sale'}
+                ) : (
+                  <><ShoppingCart className="w-5 h-5" /> Complete Sale</>
+                )}
               </button>
             </div>
           </div>
