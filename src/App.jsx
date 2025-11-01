@@ -1169,7 +1169,7 @@ function SalesDistributionChart({ allSales, allItems, onNavigate }) {
           startDate = new Date(firstDayOfWeek.getFullYear(), firstDayOfWeek.getMonth(), firstDayOfWeek.getDate());
         } else if (period === 'monthly') {
           startDate = new Date(now.getFullYear(), now.getMonth(), 1);
-        } else { // yearly
+        } else {
           startDate = new Date(now.getFullYear(), 0, 1);
         }
 
@@ -1189,7 +1189,7 @@ function SalesDistributionChart({ allSales, allItems, onNavigate }) {
 
         const sortedItems = Object.entries(itemSales)
           .sort(([, a], [, b]) => b.quantity - a.quantity)
-          .slice(0, 6); // Show top 6 items
+          .slice(0, 6);
 
         setChartData({
           labels: sortedItems.map(([name]) => name),
