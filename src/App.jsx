@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { BarChart3, Package, DollarSign, TrendingUp, AlertTriangle, Users, LogOut, Menu, X, Plus, Edit, Trash2, Search, Calendar, ShoppingCart, Minus, FileText, CheckCircle, XCircle, Loader2, Bell, RefreshCw, ChevronsUpDown, ChevronUp, ChevronDown, ArrowUp, ArrowDown, RotateCw, User, Lock, Mail, MessageSquare, Send, Building, Target, Linkedin, Github, Instagram, Facebook, KeyRound, Printer, Download, Sun, Moon, Activity } from 'lucide-react';
+import { BarChart3, Package, DollarSign, TrendingUp, AlertTriangle, Users, LogOut, Menu, X, Plus, Edit, Trash2, Search, Calendar, ShoppingCart, Minus, FileText, CheckCircle, XCircle, Loader2, Bell, RefreshCw, ChevronsUpDown, ChevronUp, ChevronDown, ArrowUp, ArrowDown, RotateCw, User, Lock, Mail, MessageSquare, Send, Building, Target, Linkedin, Github, Instagram, Facebook, KeyRound, Printer, Download, Sun, Moon, Activity, ArrowLeft } from 'lucide-react';
 import api from './api';
 
 const StatusContext = React.createContext();
@@ -937,13 +937,22 @@ function Dashboard({ onNavigate, refreshKey }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showLowStockModal, setShowLowStockModal] = useState(false);
+  const [allSales, setAllSales] = useState([]);
+  const [allItems, setAllItems] = useState([]);
 
 
   useEffect(() => {
     const fetchData = async () => {
+      setLoading(true);
       try {
-        const overviewData = await api.getOverview();
+        const [overviewData, salesData, itemsData] = await Promise.all([
+          api.getOverview(),
+          api.getSales({ limit: 10000, start_date: '2024-01-01' }), // Fetch all sales for the year
+          api.getItems({ limit: 10000, status: 'all' }) // Fetch all items
+        ]);
         setData(overviewData);
+        setAllSales(salesData.sales);
+        setAllItems(itemsData.items);
       } catch (error) {
         console.error("Failed to fetch dashboard data", error);
       } finally {
@@ -1022,7 +1031,7 @@ function Dashboard({ onNavigate, refreshKey }) {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <TrendChart data={data.trends} />
-        <TopSellingItems items={data.topItems} onNavigate={onNavigate} />
+        <SalesDistributionChart allSales={allSales} allItems={allItems} onNavigate={onNavigate} />
         <TopStockItems items={data.topStockItems} onNavigate={onNavigate} />
       </div>
     </div>
@@ -1136,46 +1145,186 @@ function StatCard({ title, value, icon: Icon, color, change, changeSuffix = '%',
   );
 }
 
-function TopSellingItems({ items, onNavigate }) {
-  if (!items || items.length === 0) {
-    return (
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-        <h3 className="text-lg font-semibold mb-4 text-gray-800 dark:text-gray-200">Top Selling Items</h3>
-        <p className="text-gray-500 dark:text-gray-400 text-center py-8">No sales data for this month yet.</p>
-      </div>
-    );
-  }
+function SalesDistributionChart({ allSales, allItems, onNavigate }) {
+  const [period, setPeriod] = useState('monthly');
+  const [chartData, setChartData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [selectedItem, setSelectedItem] = useState(null);
+  const showStatus = React.useContext(StatusContext);
 
-  const maxQty = items[0]?.qty || 1;
-  const rankColors = [
-    'bg-yellow-400 text-yellow-800',
-    'bg-gray-300 text-gray-700',
-    'bg-yellow-600 text-yellow-100',
-  ];
+
+  useEffect(() => {
+    const fetchSalesData = async () => {
+      if (!allSales || !allItems) return;
+      setLoading(true);
+      try {
+        const now = new Date();
+        let startDate;
+
+        if (period === 'daily') {
+          startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        } else if (period === 'weekly') {
+          const firstDayOfWeek = new Date(now);
+          firstDayOfWeek.setDate(now.getDate() - now.getDay());
+          startDate = new Date(firstDayOfWeek.getFullYear(), firstDayOfWeek.getMonth(), firstDayOfWeek.getDate());
+        } else if (period === 'monthly') {
+          startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+        } else { // yearly
+          startDate = new Date(now.getFullYear(), 0, 1);
+        }
+
+        const salesInPeriod = allSales.filter(s => new Date(s.created_at) >= startDate);
+
+        const itemMap = new Map(allItems.map(i => [i.item_id, i]));
+
+        const itemSales = salesInPeriod.flatMap(s => s.items).reduce((acc, item) => {
+          if (!acc[item.name]) {
+            acc[item.name] = { quantity: 0, revenue: 0, cost: 0, item_id: item.item_id };
+          }
+          acc[item.name].quantity += item.quantity;
+          acc[item.name].revenue += item.quantity * parseFloat(item.price_at_sale);
+          acc[item.name].cost += item.quantity * parseFloat(itemMap.get(item.item_id)?.purchase_price || 0);
+          return acc;
+        }, {});
+
+        const sortedItems = Object.entries(itemSales)
+          .sort(([, a], [, b]) => b.quantity - a.quantity)
+          .slice(0, 6); // Show top 6 items
+
+        setChartData({
+          labels: sortedItems.map(([name]) => name),
+          quantities: sortedItems.map(([, itemData]) => itemData.quantity),
+          details: sortedItems.map(([, itemData]) => itemData),
+        });
+        setSelectedItem(null); // Reset selection on data change
+      } catch (error) {
+        console.error("Failed to fetch sales distribution data", error);
+        showStatus('error', 'Could not load sales distribution data.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchSalesData();
+  }, [period, allSales, allItems, showStatus]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const colors = ['#4f46e5', '#7c3aed', '#db2777', '#f97316', '#10b981', '#64748b'];
+  const total = chartData ? chartData.quantities.reduce((a, b) => a + b, 0) : 0;
+
+  const radius = 45;
+  const circumference = 2 * Math.PI * radius;
+  let offset = 0;
+
+  const handleSegmentClick = (index) => {
+    const itemName = chartData.labels[index];
+    setSelectedItem(itemName === selectedItem ? null : itemName);
+  };
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-      <h3 className="text-lg font-semibold mb-4 text-gray-800 dark:text-gray-200">Top Selling Items (Current Month)</h3>
-      <div className="space-y-4">
-        {items.map((item, i) => (
-          <div key={item.item_id} className="group">
-            <div className="flex items-center gap-4">
-              <div className={`w-8 h-8 flex-shrink-0 rounded-full flex items-center justify-center font-bold text-sm ${rankColors[i] || 'bg-gray-100 text-gray-600'}`}>
-                {i + 1}
-              </div>
-              <div className="flex-1">
-                <div className="flex justify-between items-center">
-                  <span className="text-sm font-medium text-gray-800 dark:text-gray-300">{item.name}</span>
-                  <span className="text-sm font-bold text-gray-800 dark:text-gray-200">{item.qty} sold</span>
-                </div>
-                <div className="w-full bg-gray-200 rounded-full h-2 mt-1 overflow-hidden">
-                  <div className="bg-indigo-500 h-2 rounded-full transition-all duration-300 group-hover:bg-indigo-600" style={{ width: `${(item.qty / maxQty) * 100}%` }} />
-                </div>
-              </div>
+      <div className="flex justify-between items-center mb-4">
+        <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200">Sales Distribution</h3>
+        <div className="flex border border-gray-300 dark:border-gray-600 rounded-lg p-1 bg-gray-50 dark:bg-gray-900/50">
+          {['daily', 'weekly', 'monthly', 'yearly'].map(p => (
+            <button
+              key={p}
+              onClick={() => setPeriod(p)}
+              className={`px-2 py-1 text-xs font-semibold rounded-md transition-colors ${
+                period === p
+                  ? 'bg-white dark:bg-gray-700 text-indigo-600 dark:text-indigo-300 shadow-sm'
+                  : 'text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700/50'
+              }`}
+            >
+              {p.charAt(0).toUpperCase() + p.slice(1)}
+            </button>
+          ))}
+        </div>
+      </div>
+      {loading ? (
+        <div className="flex items-center justify-center h-48"><Loader2 className="w-8 h-8 animate-spin text-indigo-500" /></div>
+      ) : !chartData || chartData.labels.length === 0 ? (
+        <p className="text-gray-500 dark:text-gray-400 text-center py-16">No sales data for this period.</p>
+      ) : (
+        <div className="flex flex-col md:flex-row items-center gap-6 mt-4">
+          <div className="relative w-52 h-52 flex-shrink-0">
+            <svg className="w-full h-full" viewBox="0 0 100 100">
+              {chartData.quantities.map((qty, i) => {
+                const percentage = (qty / total) * 100;
+                const strokeDasharray = `${(percentage / 100) * circumference} ${circumference}`;
+                const strokeDashoffset = -offset;
+                offset += (percentage / 100) * circumference;
+                const segmentColor = colors[i % colors.length];
+                const isSelected = chartData.labels[i] === selectedItem;
+                return (
+                  <circle
+                    key={i}
+                    cx="50" cy="50" r={radius}
+                    fill="transparent"
+                    stroke={segmentColor}
+                    strokeWidth="10"
+                    strokeDasharray={strokeDasharray}
+                    strokeDashoffset={strokeDashoffset}
+                    transform="rotate(-90 50 50)"
+                    className="transition-all duration-300"
+                    style={isSelected ? { filter: `drop-shadow(0 0 6px ${segmentColor})` } : {}}
+                  />
+                );
+              })}
+            </svg>
+            <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+              <span className="text-2xl font-bold text-gray-800 dark:text-gray-200">{total}</span>
+              <span className="text-xs text-gray-500 dark:text-gray-400">Total Units</span>
             </div>
           </div>
-        ))}
-      </div>
+          <div className="flex-1 w-full space-y-2 text-sm">
+            {selectedItem ? (() => {
+              const selectedIndex = chartData.labels.indexOf(selectedItem);
+              const details = chartData.details[selectedIndex];
+              const isOther = selectedItem === 'Other';
+
+              return (
+                <div className="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg animate-in fade-in-0">
+                  <h4 className="font-bold text-lg mb-3 text-indigo-600 dark:text-indigo-300">{selectedItem}</h4>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-gray-600 dark:text-gray-400">Units Sold ({period}):</span>
+                      <span className="font-semibold dark:text-gray-200">{details.quantity.toLocaleString()}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600 dark:text-gray-400">Total Revenue ({period}):</span>
+                      <span className="font-semibold dark:text-gray-200">PHP {details.revenue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600 dark:text-gray-400">Profit Margin:</span>
+                      <span className={`font-semibold ${details.revenue > details.cost ? 'text-green-500' : 'text-red-500'}`}>
+                        {details.revenue > 0 ? (((details.revenue - details.cost) / details.revenue) * 100).toFixed(1) : '0.0'}%
+                      </span>
+                    </div>
+                  </div>
+                  <div className="mt-4 flex items-center gap-6">
+                    <button onClick={() => setSelectedItem(null)} className="text-sm text-gray-500 hover:underline flex items-center gap-1 dark:text-gray-400 dark:hover:text-white"> <ArrowLeft className="w-3 h-3" /> Back</button>
+                    {!isOther && <button onClick={() => onNavigate('inventory')} className="text-sm text-indigo-500 hover:underline">Go to Inventory →</button>}
+                  </div>
+                </div>
+              );
+            })() : (
+              chartData.labels.map((label, i) => (
+                <div
+                  key={i}
+                  className="flex items-center justify-between p-2 rounded-md cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700/50"
+                  onClick={() => handleSegmentClick(i)}
+                >
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-full" style={{ backgroundColor: colors[i % colors.length] }} />
+                    <span className="text-gray-700 dark:text-gray-300">{label}</span>
+                  </div>
+                  <span className="font-semibold text-gray-800 dark:text-gray-200">{((chartData.quantities[i] / total) * 100).toFixed(1)}%</span>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
