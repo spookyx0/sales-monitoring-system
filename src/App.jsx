@@ -960,7 +960,7 @@ function Dashboard({ onNavigate, refreshKey }) {
     <div className="space-y-6">
       <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-200">Dashboard Overview</h2>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
           title="This Month's Revenue"
           value={`PHP ${data.stats.monthRevenue.value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
@@ -985,9 +985,6 @@ function Dashboard({ onNavigate, refreshKey }) {
           icon={DollarSign}
           color="green"
         />
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         <StatCard
           title="Total Items"
           value={data.stats.totalItems.value}
@@ -997,22 +994,26 @@ function Dashboard({ onNavigate, refreshKey }) {
           icon={Package}
           color="blue"
         />
-        <StatCard
-          title="Total Stock Quantity"
-          value={data.stats.totalStock.value.toLocaleString()}
-          change={null}
-          trendData={data.stats.totalStock.trend}
-          icon={Package}
-          color="purple"
-        />
-        <StatCard
-          title="Low Stock Items"
-          value={data.stats.lowStockCount.value}
-          onClick={() => setShowLowStockModal(true)}
-          trendData={data.stats.lowStockCount.trend}
-          icon={AlertTriangle}
-          color="red"
-        />
+        <div className="lg:col-span-2">
+          <StatCard
+            title="Total Stock Quantity"
+            value={data.stats.totalStock.value.toLocaleString()}
+            change={null}
+            trendData={data.stats.totalStock.trend}
+            icon={Package}
+            color="purple"
+          />
+        </div>
+        <div className="lg:col-span-2">
+          <StatCard
+            title="Low Stock Items"
+            value={data.stats.lowStockCount.value}
+            onClick={() => setShowLowStockModal(true)}
+            trendData={data.stats.lowStockCount.trend}
+            icon={AlertTriangle}
+            color="red"
+          />
+        </div>
       </div>
 
       {showLowStockModal && (
