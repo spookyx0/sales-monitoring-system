@@ -133,7 +133,7 @@ function App() {
         )
       ) : (
         <div className="flex h-screen bg-gray-50 dark:bg-gray-900">
-          <Sidebar open={sidebarOpen} currentPage={currentPage} onNavigate={handleNavigate} onLogout={handleLogout} />
+          <Sidebar open={sidebarOpen} onToggleSidebar={() => setSidebarOpen(!sidebarOpen)} currentPage={currentPage} onNavigate={handleNavigate} onLogout={handleLogout} />
           
           <div className="flex-1 flex flex-col overflow-hidden">
             <Topbar 
@@ -144,7 +144,8 @@ function App() {
               notifications={notifications} 
               setNotifications={setNotifications} 
               onNavigate={handleNavigate}
-              onRefresh={handleRefresh}
+              onRefresh={handleRefresh} 
+              sidebarOpen={sidebarOpen}
               lastRefreshed={lastRefreshed} />
             
             <main className="flex-1 overflow-y-auto p-6">
@@ -713,7 +714,7 @@ function AboutPage({ onNavigate }) {
   );
 }
 
-function Sidebar({ open, currentPage, onNavigate, onLogout }) {
+function Sidebar({ open, onToggleSidebar, currentPage, onNavigate, onLogout }) {
   const navItems = [
     { id: 'dashboard', label: 'Dashboard', icon: BarChart3 },
     { id: 'inventory', label: 'Inventory', icon: Package },
@@ -727,11 +728,14 @@ function Sidebar({ open, currentPage, onNavigate, onLogout }) {
 
   return (
     <aside className="w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col">
-      <div className="p-5 border-b border-gray-200 dark:border-gray-700">
-        <div className="flex items-center gap-3">
+      <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+        <div className="flex items-center gap-2">
           <Activity className="w-8 h-8 text-indigo-600" />
           <h1 className="text-xl font-bold text-gray-800 dark:text-gray-200">ProfitPulse</h1>
         </div>
+        <button onClick={onToggleSidebar} className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition">
+          <X className="w-6 h-6 text-gray-600 dark:text-gray-300" />
+        </button>
       </div>
       
       <nav className="flex-1 p-4 space-y-1">
@@ -799,7 +803,7 @@ function useTimeAgo(date) {
   return timeAgo;
 }
 
-function Topbar({ user, onToggleSidebar, notifications, setNotifications, onNavigate, onRefresh, lastRefreshed, theme, onToggleTheme }) {
+function Topbar({ user, onToggleSidebar, notifications, setNotifications, onNavigate, onRefresh, lastRefreshed, theme, onToggleTheme, sidebarOpen }) {
   const [showNotifications, setShowNotifications] = useState(false);
   const unreadCount = notifications.filter(n => !n.read).length;
   const notificationsRef = useRef(null);
@@ -853,15 +857,19 @@ function Topbar({ user, onToggleSidebar, notifications, setNotifications, onNavi
   return (
     <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-4">
       <div className="flex items-center justify-between">
-        <button
-          onClick={onToggleSidebar}
-          className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition"
-        >
-          <Menu className="w-6 h-6 text-gray-600 dark:text-gray-300" />
-        </button>
+        <div>
+          {!sidebarOpen && (
+            <button
+              onClick={onToggleSidebar}
+              className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition"
+            >
+              <Menu className="w-6 h-6 text-gray-600 dark:text-gray-300" />
+            </button>
+          )}
+        </div>
         
         <div className="flex items-center gap-6">
-          <div className="flex items-center gap-2 ml-8">
+          <div className="flex items-center gap-2">
             {lastRefreshed && (
               <span className="text-xs text-gray-500 dark:text-gray-400 w-24 text-right">Refreshed {timeAgo}</span>
             )}
