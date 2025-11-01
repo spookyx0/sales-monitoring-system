@@ -133,7 +133,7 @@ function App() {
         )
       ) : (
         <div className="flex h-screen bg-gray-50 dark:bg-gray-900">
-          <Sidebar open={sidebarOpen} onToggleSidebar={() => setSidebarOpen(!sidebarOpen)} currentPage={currentPage} onNavigate={handleNavigate} onLogout={handleLogout} />
+          <Sidebar isOpen={sidebarOpen} onToggle={() => setSidebarOpen(!sidebarOpen)} currentPage={currentPage} onNavigate={handleNavigate} onLogout={handleLogout} />
           
           <div className="flex-1 flex flex-col overflow-hidden">
             <Topbar 
@@ -144,7 +144,7 @@ function App() {
               notifications={notifications} 
               setNotifications={setNotifications} 
               onNavigate={handleNavigate}
-              onRefresh={handleRefresh} 
+              onRefresh={handleRefresh}
               sidebarOpen={sidebarOpen}
               lastRefreshed={lastRefreshed} />
             
@@ -714,7 +714,7 @@ function AboutPage({ onNavigate }) {
   );
 }
 
-function Sidebar({ open, onToggleSidebar, currentPage, onNavigate, onLogout }) {
+function Sidebar({ isOpen, onToggle, currentPage, onNavigate, onLogout }) {
   const navItems = [
     { id: 'dashboard', label: 'Dashboard', icon: BarChart3 },
     { id: 'inventory', label: 'Inventory', icon: Package },
@@ -724,17 +724,15 @@ function Sidebar({ open, onToggleSidebar, currentPage, onNavigate, onLogout }) {
     { id: 'expenses', label: 'Expenses', icon: AlertTriangle }
   ];
 
-  if (!open) return null;
-
   return (
-    <aside className="w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col">
-      <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
-        <div className="flex items-center gap-2">
+    <aside className={`bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col transition-all duration-300 ease-in-out ${isOpen ? 'w-64' : 'w-20'}`}>
+      <div className={`p-4 border-b border-gray-200 dark:border-gray-700 flex items-center ${isOpen ? 'justify-between' : 'justify-center'}`}>
+        <div className={`flex items-center gap-2 overflow-hidden ${!isOpen && 'w-0'}`}>
           <Activity className="w-8 h-8 text-indigo-600" />
-          <h1 className="text-xl font-bold text-gray-800 dark:text-gray-200">ProfitPulse</h1>
+          <h1 className="text-xl font-bold text-gray-800 dark:text-gray-200 whitespace-nowrap">ProfitPulse</h1>
         </div>
-        <button onClick={onToggleSidebar} className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition">
-          <X className="w-6 h-6 text-gray-600 dark:text-gray-300" />
+        <button onClick={onToggle} className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition">
+          {isOpen ? <X className="w-6 h-6 text-gray-600 dark:text-gray-300" /> : <Menu className="w-6 h-6 text-gray-600 dark:text-gray-300" />}
         </button>
       </div>
       
@@ -746,14 +744,17 @@ function Sidebar({ open, onToggleSidebar, currentPage, onNavigate, onLogout }) {
             <button
               key={item.id}
               onClick={() => onNavigate(item.id)}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition ${
+              className={`w-full flex items-center gap-3 py-3 rounded-lg transition ${isOpen ? 'px-4' : 'justify-center'} ${
                 isActive
                   ? 'bg-indigo-50 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-300 font-semibold'
                   : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
               }`}
+              title={!isOpen ? item.label : ''}
             >
-              <Icon className="w-5 h-5" />
-              {item.label}
+              <Icon className="w-5 h-5 flex-shrink-0" />
+              <span className={`whitespace-nowrap transition-opacity duration-200 ${isOpen ? 'opacity-100' : 'opacity-0 w-0'}`}>
+                {item.label}
+              </span>
             </button>
           );
         })}
@@ -762,10 +763,13 @@ function Sidebar({ open, onToggleSidebar, currentPage, onNavigate, onLogout }) {
       <div className="p-4 border-t border-gray-200 dark:border-gray-700">
         <button
           onClick={onLogout}
-          className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/50 transition"
+          className={`w-full flex items-center gap-3 py-3 rounded-lg text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/50 transition ${isOpen ? 'px-4' : 'justify-center'}`}
+          title={!isOpen ? 'Logout' : ''}
         >
-          <LogOut className="w-5 h-5" />
-          Logout
+          <LogOut className="w-5 h-5 flex-shrink-0" />
+          <span className={`whitespace-nowrap transition-opacity duration-200 ${isOpen ? 'opacity-100' : 'opacity-0 w-0'}`}>
+            Logout
+          </span>
         </button>
       </div>
     </aside>
@@ -801,6 +805,74 @@ function useTimeAgo(date) {
   }, [date]);
 
   return timeAgo;
+}
+
+function GlobalSearch({ onNavigate }) {
+  const [query, setQuery] = useState('');
+  const [results, setResults] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const debouncedQuery = useDebounce(query, 300);
+  const searchRef = useRef(null);
+
+  useEffect(() => {
+    const performSearch = async () => {
+      if (debouncedQuery.length < 2) {
+        setResults(null);
+        return;
+      }
+      setLoading(true);
+      try {
+        const searchResults = await api.globalSearch(debouncedQuery);
+        setResults(searchResults);
+      } catch (error) {
+        console.error("Global search failed:", error);
+        setResults(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+    performSearch();
+  }, [debouncedQuery]);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (searchRef.current && !searchRef.current.contains(event.target)) {
+        setQuery('');
+        setResults(null);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const handleResultClick = (page) => {
+    onNavigate(page);
+    setQuery('');
+    setResults(null);
+  };
+
+  return (
+    <div className="relative w-96" ref={searchRef}>
+      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500" />
+      <input
+        type="text"
+        placeholder="Search items, sales..."
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+        className="w-full pl-9 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-200"
+      />
+      {loading && <Loader2 className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 animate-spin" />}
+      {results && (
+        <div className="absolute top-full mt-2 w-full bg-white dark:bg-gray-800 rounded-lg shadow-xl border dark:border-gray-700 z-30 max-h-96 overflow-y-auto">
+          {results.items.length > 0 && <div className="p-2 text-xs font-semibold text-gray-500 dark:text-gray-400 border-b dark:border-gray-700">Items</div>}
+          {results.items.map(item => <a href="#!" key={`item-${item.item_id}`} onClick={() => handleResultClick('inventory')} className="block p-3 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 dark:text-gray-200">{item.name}</a>)}
+          {results.sales.length > 0 && <div className="p-2 text-xs font-semibold text-gray-500 dark:text-gray-400 border-b dark:border-gray-700 mt-2">Sales</div>}
+          {results.sales.map(sale => <a href="#!" key={`sale-${sale.sale_id}`} onClick={() => handleResultClick('sales')} className="block p-3 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 dark:text-gray-200">Sale #{sale.sale_number}</a>)}
+          {results.items.length === 0 && results.sales.length === 0 && <div className="p-4 text-sm text-center text-gray-500">No results found.</div>}
+        </div>
+      )}
+    </div>
+  );
 }
 
 function Topbar({ user, onToggleSidebar, notifications, setNotifications, onNavigate, onRefresh, lastRefreshed, theme, onToggleTheme, sidebarOpen }) {
@@ -857,16 +929,7 @@ function Topbar({ user, onToggleSidebar, notifications, setNotifications, onNavi
   return (
     <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-4">
       <div className="flex items-center justify-between">
-        <div>
-          {!sidebarOpen && (
-            <button
-              onClick={onToggleSidebar}
-              className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition"
-            >
-              <Menu className="w-6 h-6 text-gray-600 dark:text-gray-300" />
-            </button>
-          )}
-        </div>
+        <GlobalSearch onNavigate={onNavigate} />
         
         <div className="flex items-center gap-6">
           <div className="flex items-center gap-2">
