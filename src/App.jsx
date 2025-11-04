@@ -29,7 +29,7 @@ function App() {
       const timer = setTimeout(() => closeStatus(), 3000);
       return () => clearTimeout(timer);
     }
-  }, [status.isOpen]); // useCallback for closeStatus is not needed here
+  }, [status.isOpen]);
 
   useEffect(() => {
     if (theme === 'dark') {
@@ -40,7 +40,6 @@ function App() {
     localStorage.setItem('theme', theme);
   }, [theme]);
 
-  // Handle routing for public pages like /reset-password?token=...
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const token = urlParams.get('token');
@@ -72,7 +71,6 @@ function App() {
 
   const fetchNotifications = useCallback(async () => {
     try {
-      // This is a mock implementation. Ideally, this would be a single API call.
       const { items } = await api.getItems({ limit: 1000 });
       const lowStockNotifications = items
         .filter(item => item.qty_in_stock <= item.reorder_level)
