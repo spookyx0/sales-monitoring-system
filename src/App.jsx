@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { BarChart3, Package, DollarSign, TrendingUp, AlertTriangle, Users, LogOut, Menu, X, Plus, Edit, Trash2, Search, Calendar, ShoppingCart, Minus, FileText, CheckCircle, XCircle, Loader2, Bell, RefreshCw, ChevronsUpDown, ChevronUp, ChevronDown, ArrowUp, ArrowDown, RotateCw, User, Lock, Mail, MessageSquare, Send, Building, Target, Linkedin, Github, Instagram, Facebook, KeyRound, Printer, Download, Sun, Moon, Activity, ArrowLeft } from 'lucide-react';
+import { BarChart3, Package, DollarSign, TrendingUp, AlertTriangle, Users, LogOut, Menu, X, Plus, Edit, Trash2, Search, Calendar, ShoppingCart, Minus, FileText, CheckCircle, XCircle, Loader2, Bell, RefreshCw, ChevronsUpDown, ChevronUp, ChevronDown, ArrowUp, ArrowDown, RotateCw, User, Lock, Mail, MessageSquare, Send, Building, Target, Linkedin, Github, Instagram, Facebook, KeyRound, Printer, Download, Sun, Moon, Activity, ArrowLeft, Eye, EyeOff } from 'lucide-react';
 import api from './api';
 
 const StatusContext = React.createContext();
@@ -227,6 +227,7 @@ function LoginPage({ onLogin, onNavigate }) {
   const [error, setError] = useState(false);
   const [isFadingOut, setIsFadingOut] = useState(false);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const showStatus = React.useContext(StatusContext);
 
   const handleSubmit = async (e) => {
@@ -293,12 +294,19 @@ function LoginPage({ onLogin, onNavigate }) {
                   <Lock className="w-5 h-5" />
                 </div>
                 <input
-                  type="password"
+                  type={showPassword ? 'text' : 'password'}
                   placeholder="••••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="w-full bg-indigo-900/50 border border-indigo-700/50 rounded-full px-12 py-3 text-white placeholder-gray-400 text-sm focus:outline-none focus:border-cyan-400 transition-colors"
                 />
+                <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white transition-colors">
+                  {showPassword ? (
+                    <EyeOff className="w-5 h-5" />
+                  ) : (
+                    <Eye className="w-5 h-5" />
+                  )}
+                </button>
               </div>
 
               {/* Login Button */}
