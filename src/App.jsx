@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { BarChart3, Package, DollarSign, TrendingUp, AlertTriangle, Users, LogOut, Menu, X, Plus, Edit, Trash2, Search, Calendar, ShoppingCart, Minus, FileText, CheckCircle, XCircle, Loader2, Bell, RefreshCw, ChevronsUpDown, ChevronUp, ChevronDown, ArrowUp, ArrowDown, RotateCw, User, Lock, Mail, MessageSquare, Send, Building, Target, Linkedin, Github, Instagram, Facebook, KeyRound, Printer, Download, Sun, Moon, Activity, ArrowLeft, Eye, EyeOff, Truck, Feather } from 'lucide-react';
+import { BarChart3, Package, DollarSign, TrendingUp, AlertTriangle, Users, LogOut, Menu, X, Plus, Edit, Trash2, Search, Calendar, ShoppingCart, Minus, FileText, CheckCircle, XCircle, Loader2, Bell, RefreshCw, ChevronsUpDown, ChevronUp, ChevronDown, ArrowUp, ArrowDown, RotateCw, User, Lock, Mail, MessageSquare, Send, Building, Target, Linkedin, Github, Instagram, Facebook, KeyRound, Printer, Download, Sun, Moon, Activity, ArrowLeft, Eye, EyeOff, Truck, Feather, MapPin, ClipboardList, FileInput } from 'lucide-react';
 import api from './api';
 
 const StatusContext = React.createContext();
@@ -153,12 +153,29 @@ function App() {
               {currentPage === 'analytics' && <Analytics refreshKey={refreshKey} />}
               {currentPage === 'audits' && <Audits refreshKey={refreshKey} />}
               {currentPage === 'expenses' && <Expenses setNotifications={setNotifications} user={auth.admin} refreshKey={refreshKey} />}
+              {currentPage === 'fv-dashboard' && <PlaceholderPage title="Freezer Van Dashboard" />}
+              {currentPage === 'fv-deliveries' && <FreezerVanDeliveries user={auth.admin} refreshKey={refreshKey} />}
+              {currentPage === 'fv-branch' && <PlaceholderPage title="Freezer Van Branch Management" />}
+              {currentPage === 'fv-inventory' && <FreezerVanInventory user={auth.admin} refreshKey={refreshKey} />}
+              {currentPage === 'lc-dashboard' && <PlaceholderPage title="Live Chicken Dashboard" />}
+              {currentPage === 'lc-inventory' && <PlaceholderPage title="Live Chicken Inventory" />}
+              {currentPage === 'lc-distribution' && <PlaceholderPage title="Live Chicken Distribution" />}
             </main>
           </div>
           {status.isOpen && <StatusModal type={status.type} message={status.message} onClose={closeStatus} />}
         </div>
       )}
     </StatusContext.Provider>
+  );
+}
+
+function PlaceholderPage({ title }) {
+  return (
+    <div className="flex flex-col items-center justify-center h-full text-center text-gray-500 dark:text-gray-400">
+      <Package className="w-16 h-16 mb-4" />
+      <h2 className="text-2xl font-bold text-gray-700 dark:text-gray-300">{title}</h2>
+      <p className="mt-2">This page is under construction. Check back soon!</p>
+    </div>
   );
 }
 
@@ -721,8 +738,15 @@ function AboutPage({ onNavigate }) {
 }
 
 function SidebarDropdown({ isOpen, item, currentPage, onNavigate }) {
-  const [isDropdownOpen, setDropdownOpen] = useState(false);
+  const isParentActive = item.children.some(child => child.id === currentPage);
+  const [isDropdownOpen, setDropdownOpen] = useState(isParentActive);
   const { icon: Icon, label, children } = item;
+
+  useEffect(() => {
+    if (isParentActive) {
+      setDropdownOpen(true);
+    }
+  }, [currentPage, isParentActive]);
 
   return (
     <div>
@@ -3203,6 +3227,578 @@ function ReceiptModal({ sale, onClose }) {
         <div className="p-4 bg-gray-50 dark:bg-gray-900/50 border-t dark:border-gray-700 flex justify-end gap-3 no-print">
           <button onClick={onClose} className="px-4 py-2 border dark:border-gray-600 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 font-semibold text-gray-700 dark:text-gray-200">Close</button>
           <button onClick={handlePrint} className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-semibold flex items-center gap-2 dark:bg-indigo-500 dark:hover:bg-indigo-600"><Printer className="w-4 h-4" /> Print</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function FreezerVanDeliveries({ user, refreshKey }) {
+  const [deliveries, setDeliveries] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [showForm, setShowForm] = useState(false);
+  const [selectedBranch, setSelectedBranch] = useState('All');
+  const [viewingDelivery, setViewingDelivery] = useState(null);
+  const showStatus = React.useContext(StatusContext);
+
+  // Mock data, replace with API calls
+  const branches = ['All', 'Manila Branch', 'Cebu Branch', 'Davao Branch'];
+  const mockDeliveries = [
+    { id: 1, deliveryNumber: 'D-2025-001', branch: 'Manila Branch', date: '2025-11-15', driver: 'John Doe', status: 'Delivered', items: [{ name: 'Frozen Chicken', quantity: 50 }] },
+    { id: 2, deliveryNumber: 'D-2025-002', branch: 'Cebu Branch', date: '2025-11-16', driver: 'Jane Smith', status: 'In Transit', items: [{ name: 'Frozen Beef', quantity: 30 }] },
+    { id: 3, deliveryNumber: 'D-2025-003', branch: 'Manila Branch', date: '2025-11-17', driver: 'Peter Jones', status: 'Pending', items: [{ name: 'Frozen Pork', quantity: 70 }] },
+  ];
+
+  useEffect(() => {
+    setLoading(true);
+    // Simulate API call
+    setTimeout(() => {
+      setDeliveries(mockDeliveries);
+      setLoading(false);
+    }, 1000);
+  }, [refreshKey]);
+
+  const filteredDeliveries = selectedBranch === 'All'
+    ? deliveries
+    : deliveries.filter(d => d.branch === selectedBranch);
+
+  const handleSaveDelivery = (newDelivery) => {
+    // This is where you would call the API to save the delivery
+    // and it would automatically deduct from the Freezer Van Inventory on the backend.
+    setDeliveries(prev => [{ ...newDelivery, id: prev.length + 1, deliveryNumber: `D-2025-00${prev.length + 1}` }, ...prev]);
+    showStatus('success', 'Delivery created successfully! Inventory has been updated.');
+    setShowForm(false);
+  };
+
+  const handleUpdateDeliveryStatus = (deliveryId, newStatus) => {
+    setDeliveries(prev =>
+      prev.map(d => (d.id === deliveryId ? { ...d, status: newStatus } : d))
+    );
+    // Also update the currently viewed delivery to reflect the change instantly in the modal
+    setViewingDelivery(prev => (prev && prev.id === deliveryId ? { ...prev, status: newStatus } : prev));
+    showStatus('success', `Delivery status updated to ${newStatus}.`);
+  };
+
+  const statusColors = {
+    'Delivered': 'bg-green-100 text-green-700',
+    'In Transit': 'bg-blue-100 text-blue-700',
+    'Pending': 'bg-yellow-100 text-yellow-700',
+    'Cancelled': 'bg-red-100 text-red-700',
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-200">Freezer Van Deliveries</h2>
+        <button
+          onClick={() => setShowForm(true)}
+          className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition dark:bg-indigo-500 dark:hover:bg-indigo-600"
+        >
+          <Plus className="w-5 h-5" />
+          New Delivery
+        </button>
+      </div>
+
+      {/* Analytics Section */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="bg-white dark:bg-gray-800 p-5 rounded-lg shadow"><div className="text-sm text-gray-500 dark:text-gray-400">Deliveries Today</div><div className="text-2xl font-bold dark:text-white">5</div></div>
+        <div className="bg-white dark:bg-gray-800 p-5 rounded-lg shadow"><div className="text-sm text-gray-500 dark:text-gray-400">Pending Deliveries</div><div className="text-2xl font-bold dark:text-white">2</div></div>
+        <div className="bg-white dark:bg-gray-800 p-5 rounded-lg shadow"><div className="text-sm text-gray-500 dark:text-gray-400">Total Items Delivered (Month)</div><div className="text-2xl font-bold dark:text-white">1,204</div></div>
+      </div>
+
+      {/* Deliveries Table */}
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow">
+        <div className="p-4 border-b dark:border-gray-700">
+          <div className="flex items-center gap-4">
+            <h3 className="text-lg font-semibold dark:text-gray-200">Deliveries Monitoring</h3>
+            <select value={selectedBranch} onChange={e => setSelectedBranch(e.target.value)} className="px-3 py-1 border rounded-lg text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200">
+              {branches.map(b => <option key={b} value={b}>{b}</option>)}
+            </select>
+          </div>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead className="bg-gray-50 dark:bg-gray-700/50">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase">Delivery #</th>
+                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase">Branch</th>
+                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase">Date</th>
+                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase">Driver</th>
+                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase">Status</th>
+                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+              {loading ? (
+                <tr><td colSpan="6" className="text-center py-8 text-gray-500">Loading deliveries...</td></tr>
+              ) : filteredDeliveries.map(d => (
+                <tr key={d.id}>
+                  <td className="px-6 py-4 text-sm font-medium text-indigo-600 dark:text-indigo-400">{d.deliveryNumber}</td>
+                  <td className="px-6 py-4 text-sm dark:text-gray-300">{d.branch}</td>
+                  <td className="px-6 py-4 text-sm dark:text-gray-300">{d.date}</td>
+                  <td className="px-6 py-4 text-sm dark:text-gray-300">{d.driver}</td>
+                  <td className="px-6 py-4 text-sm"><span className={`px-2 py-1 rounded-full text-xs font-semibold ${statusColors[d.status]}`}>{d.status}</span></td>
+                  <td className="px-6 py-4 text-sm"><button onClick={() => setViewingDelivery(d)} className="text-indigo-600 hover:underline">View</button></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {showForm && <NewDeliveryModal branches={branches.filter(b => b !== 'All')} onClose={() => setShowForm(false)} onSave={handleSaveDelivery} />}
+      {viewingDelivery && <DeliveryDetailsModal delivery={viewingDelivery} onClose={() => setViewingDelivery(null)} onUpdateStatus={handleUpdateDeliveryStatus} />}
+    </div>
+  );
+}
+
+function DeliveryDetailsModal({ delivery, onClose, onUpdateStatus }) {
+  const [currentStatus, setCurrentStatus] = useState(delivery.status);
+  const [isSaving, setIsSaving] = useState(false);
+
+  const handleSave = () => {
+    setIsSaving(true);
+    onUpdateStatus(delivery.id, currentStatus);
+    setIsSaving(false);
+  };
+
+  const statusColors = {
+    'Delivered': 'bg-green-100 text-green-700',
+    'In Transit': 'bg-blue-100 text-blue-700',
+    'Pending': 'bg-yellow-100 text-yellow-700',
+    'Cancelled': 'bg-red-100 text-red-700',
+  };
+
+  const deliveryStatuses = ['Pending', 'In Transit', 'Delivered', 'Cancelled'];
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col animate-in fade-in-0 zoom-in-95">
+        <div className="flex items-center justify-between p-6 border-b dark:border-gray-700">
+          <h3 className="text-xl font-bold text-gray-800 dark:text-gray-200">Delivery Details: {delivery.deliveryNumber}</h3>
+          <button onClick={onClose} className="p-1 rounded-full text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700"><X className="w-5 h-5" /></button>
+        </div>
+        <div className="p-6 overflow-y-auto">
+          <div className="grid grid-cols-2 gap-4 mb-6 text-sm">
+            <div><span className="font-semibold text-gray-600 dark:text-gray-400">Branch:</span> <span className="dark:text-gray-300">{delivery.branch}</span></div>
+            <div><span className="font-semibold text-gray-600 dark:text-gray-400">Date:</span> <span className="dark:text-gray-300">{delivery.date}</span></div>
+            <div><span className="font-semibold text-gray-600 dark:text-gray-400">Driver:</span> <span className="dark:text-gray-300">{delivery.driver}</span></div>
+            <div className="flex items-center gap-2">
+              <span className="font-semibold text-gray-600 dark:text-gray-400">Status:</span>
+              <select
+                value={currentStatus}
+                onChange={(e) => setCurrentStatus(e.target.value)}
+                className={`px-2 py-1 border rounded-lg text-xs font-semibold ${statusColors[currentStatus]} dark:bg-gray-700 dark:border-gray-600`}>
+                {deliveryStatuses.map(status => <option key={status} value={status}>{status}</option>)}
+              </select>
+            </div>
+          </div>
+
+          <h4 className="font-semibold text-gray-700 dark:text-gray-300 mb-2">Items in Delivery</h4>
+          <div className="border dark:border-gray-700 rounded-lg overflow-hidden">
+            <table className="w-full">
+              <thead className="bg-gray-50 dark:bg-gray-700/50">
+                <tr>
+                  <th className="px-4 py-2 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase">Item Name</th>
+                  <th className="px-4 py-2 text-right text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase">Quantity</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y dark:divide-gray-700">
+                {delivery.items.map((item, index) => (
+                  <tr key={index}><td className="px-4 py-3 text-sm font-medium dark:text-gray-200">{item.name}</td><td className="px-4 py-3 text-sm text-right dark:text-gray-300">{item.quantity}</td></tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div className="p-4 bg-gray-50 dark:bg-gray-900/50 border-t dark:border-gray-700 flex justify-end gap-3">
+          <button onClick={onClose} className="px-4 py-2 border rounded-lg dark:border-gray-600">Close</button>
+          <button
+            onClick={handleSave}
+            disabled={isSaving || currentStatus === delivery.status}
+            className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isSaving ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Update Status'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function NewDeliveryModal({ branches, onClose, onSave }) {
+  const [delivery, setDelivery] = useState({ branch: branches[0] || '', driver: '', date: new Date().toISOString().split('T')[0], items: [] });
+  const [inventoryItems, setInventoryItems] = useState([]);
+  const [search, setSearch] = useState('');
+  const showStatus = React.useContext(StatusContext);
+
+  useEffect(() => {
+    // Mock fetching freezer van inventory. Replace with actual API call.
+    const mockFvInventory = [
+      { id: 101, name: 'Frozen Chicken Wings', qty_in_stock: 200, selling_price: 250.00 },
+      { id: 102, name: 'Frozen Ground Beef', qty_in_stock: 150, selling_price: 400.00 },
+      { id: 103, name: 'Frozen Pork Chops', qty_in_stock: 300, selling_price: 320.00 },
+    ];
+    setInventoryItems(mockFvInventory);
+  }, []);
+
+  const handleAddItem = (item) => {
+    if (delivery.items.find(i => i.id === item.id)) return;
+    setDelivery(prev => ({ ...prev, items: [...prev.items, { ...item, quantity: 1 }] }));
+  };
+
+  const handleUpdateQuantity = (itemId, quantity) => {
+    const numQuantity = parseInt(quantity, 10);
+    const itemInInventory = inventoryItems.find(i => i.id === itemId);
+    if (numQuantity > itemInInventory.qty_in_stock) {
+      showStatus('error', `Only ${itemInInventory.qty_in_stock} in stock.`);
+      return;
+    }
+    if (numQuantity < 1) {
+      setDelivery(prev => ({ ...prev, items: prev.items.filter(i => i.id !== itemId) }));
+    } else {
+      setDelivery(prev => ({ ...prev, items: prev.items.map(i => i.id === itemId ? { ...i, quantity: numQuantity } : i) }));
+    }
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (!delivery.branch || !delivery.driver || !delivery.date || delivery.items.length === 0) {
+      showStatus('error', 'Please fill all fields and add items to the delivery.');
+      return;
+    }
+    onSave({ ...delivery, status: 'Pending' });
+  };
+
+  const filteredInventory = inventoryItems.filter(item =>
+    item.name.toLowerCase().includes(search.toLowerCase()) &&
+    !delivery.items.some(cartItem => cartItem.id === item.id)
+  );
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] flex flex-col">
+        <div className="flex items-center justify-between p-6 border-b dark:border-gray-700">
+          <h3 className="text-xl font-bold text-gray-800 dark:text-gray-200">Create New Delivery</h3>
+          <button onClick={onClose} className="p-1 rounded-full text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700"><X className="w-5 h-5" /></button>
+        </div>
+        <form onSubmit={handleSubmit} className="flex-1 flex overflow-hidden">
+          {/* Left: Delivery Details */}
+          <div className="w-1/3 p-6 space-y-4 border-r dark:border-gray-700">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Branch</label>
+              <select value={delivery.branch} onChange={e => setDelivery(d => ({ ...d, branch: e.target.value }))} className="w-full p-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600">
+                {branches.map(b => <option key={b} value={b}>{b}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Driver</label>
+              <input type="text" value={delivery.driver} onChange={e => setDelivery(d => ({ ...d, driver: e.target.value }))} className="w-full p-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Date</label>
+              <input type="date" value={delivery.date} onChange={e => setDelivery(d => ({ ...d, date: e.target.value }))} className="w-full p-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600" />
+            </div>
+            <div className="pt-4 border-t dark:border-gray-600">
+              <h4 className="font-semibold mb-2 dark:text-gray-200">Items in Delivery</h4>
+              <div className="space-y-2 max-h-60 overflow-y-auto">
+                {delivery.items.map(item => (
+                  <div key={item.id} className="flex items-center justify-between text-sm">
+                    <span className="dark:text-gray-300">{item.name}</span>
+                    <input type="number" value={item.quantity} onChange={e => handleUpdateQuantity(item.id, e.target.value)} className="w-16 text-center p-1 border rounded dark:bg-gray-700 dark:border-gray-600" />
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+          {/* Right: Item Selection */}
+          <div className="w-2/3 flex flex-col">
+            <div className="p-4 border-b dark:border-gray-700">
+              <input type="text" placeholder="Search Freezer Van Inventory..." value={search} onChange={e => setSearch(e.target.value)} className="w-full p-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600" />
+            </div>
+            <div className="flex-1 overflow-y-auto divide-y dark:divide-gray-700">
+              {filteredInventory.map(item => (
+                <div key={item.id} className="p-4 flex justify-between items-center">
+                  <div>
+                    <div className="font-medium dark:text-gray-200">{item.name}</div>
+                    <div className="text-sm text-gray-500 dark:text-gray-400">Stock: {item.qty_in_stock}</div>
+                  </div>
+                  <button type="button" onClick={() => handleAddItem(item)} className="p-2 bg-indigo-100 text-indigo-600 rounded-full hover:bg-indigo-200"><Plus className="w-4 h-4" /></button>
+                </div>
+              ))}
+            </div>
+          </div>
+        </form>
+        <div className="p-4 bg-gray-50 dark:bg-gray-900/50 border-t dark:border-gray-700 flex justify-end gap-3">
+          <button type="button" onClick={onClose} className="px-4 py-2 border rounded-lg dark:border-gray-600">Cancel</button>
+          <button type="button" onClick={handleSubmit} className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">Create Delivery</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function FreezerVanInventory({ user, refreshKey }) {
+  const [inventory, setInventory] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [showSalesReportModal, setShowSalesReportModal] = useState(false);
+  const [showAddStockModal, setShowAddStockModal] = useState(false);
+  const [showItemForm, setShowItemForm] = useState(false);
+  const showStatus = React.useContext(StatusContext);
+
+  const mockFvInventory = [
+    { id: 101, name: 'Frozen Chicken Wings', qty_in_stock: 150, purchase_price: 220.00, reorder_level: 50 },
+    { id: 102, name: 'Frozen Ground Beef', qty_in_stock: 120, purchase_price: 350.00, reorder_level: 40 },
+    { id: 103, name: 'Frozen Pork Chops', qty_in_stock: 230, purchase_price: 280.00, reorder_level: 60 },
+    { id: 104, name: 'Frozen Fish Fillet', qty_in_stock: 30, purchase_price: 180.00, reorder_level: 40 },
+  ];
+
+  useEffect(() => {
+    setLoading(true);
+    setTimeout(() => {
+      setInventory(mockFvInventory);
+      setLoading(false);
+    }, 1000);
+  }, [refreshKey]);
+
+  const handleSalesReportSubmit = (salesReport) => {
+    setInventory(currentInventory => {
+      const updatedInventory = [...currentInventory];
+      salesReport.items.forEach(soldItem => {
+        const itemIndex = updatedInventory.findIndex(invItem => invItem.id === soldItem.id);
+        if (itemIndex !== -1) {
+          updatedInventory[itemIndex].qty_in_stock -= soldItem.quantity;
+        }
+      });
+      return updatedInventory;
+    });
+    showStatus('success', `Sales from ${salesReport.branch} submitted. Inventory updated.`);
+    setShowSalesReportModal(false);
+  };
+
+  const handleAddNewStock = (itemId, quantity) => {
+    setInventory(currentInventory => {
+      const updatedInventory = [...currentInventory];
+      const itemIndex = updatedInventory.findIndex(invItem => invItem.id === itemId);
+      if (itemIndex !== -1) {
+        updatedInventory[itemIndex].qty_in_stock += quantity;
+      }
+      return updatedInventory;
+    });
+    const item = inventory.find(i => i.id === itemId);
+    showStatus('success', `Added ${quantity} to ${item.name}. Stock updated.`);
+    setShowAddStockModal(false);
+  };
+
+  const handleSaveNewItem = (newItemData) => {
+    const newItem = { ...newItemData, id: inventory.length + 105, purchase_price: newItemData.purchase_price || 0 };
+    setInventory(prev => [newItem, ...prev]);
+    showStatus('success', `Successfully added new item: ${newItem.name}`);
+    setShowItemForm(false);
+  };
+
+  const totalStockValue = inventory.reduce((sum, item) => sum + (item.qty_in_stock * item.purchase_price), 0);
+  const lowStockCount = inventory.filter(item => item.qty_in_stock <= item.reorder_level).length;
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-200">Freezer Van Inventory</h2>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => setShowItemForm(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition dark:bg-indigo-500 dark:hover:bg-indigo-600">
+            <Plus className="w-5 h-5" />
+            Add Item
+          </button>
+          <button
+            onClick={() => setShowAddStockModal(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition dark:bg-blue-500 dark:hover:bg-blue-600">
+            <Plus className="w-5 h-5" />
+            Add Stock
+          </button>
+          <button onClick={() => setShowSalesReportModal(true)} className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition dark:bg-purple-500 dark:hover:bg-purple-600">
+            <FileInput className="w-5 h-5" />
+            Submit Branch Sales
+          </button>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="bg-white dark:bg-gray-800 p-5 rounded-lg shadow"><div className="text-sm text-gray-500 dark:text-gray-400">Total Stock Value</div><div className="text-2xl font-bold dark:text-white">PHP {totalStockValue.toLocaleString('en-US', { minimumFractionDigits: 2 })}</div></div>
+        <div className="bg-white dark:bg-gray-800 p-5 rounded-lg shadow"><div className="text-sm text-gray-500 dark:text-gray-400">Total Item Types</div><div className="text-2xl font-bold dark:text-white">{inventory.length}</div></div>
+        <div className="bg-white dark:bg-gray-800 p-5 rounded-lg shadow"><div className="text-sm text-gray-500 dark:text-gray-400">Items Low on Stock</div><div className={`text-2xl font-bold ${lowStockCount > 0 ? 'text-red-500' : 'dark:text-white'}`}>{lowStockCount}</div></div>
+      </div>
+
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow">
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead className="bg-gray-50 dark:bg-gray-700/50">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase">Item Name</th>
+                <th className="px-6 py-3 text-right text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase">Current Stock (kg)</th>
+                <th className="px-6 py-3 text-right text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase">Reorder Level (kg)</th>
+                <th className="px-6 py-3 text-center text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase">Status</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+              {loading ? (
+                <tr><td colSpan="4" className="text-center py-8 text-gray-500">Loading inventory...</td></tr>
+              ) : inventory.map(item => (
+                <tr key={item.id}>
+                  <td className="px-6 py-4 text-sm font-medium dark:text-gray-200">{item.name}</td>
+                  <td className="px-6 py-4 text-sm font-semibold dark:text-gray-300 text-right">{item.qty_in_stock.toFixed(2)}</td>
+                  <td className="px-6 py-4 text-sm dark:text-gray-300 text-right">{item.reorder_level.toFixed(2)}</td>
+                  <td className="px-6 py-4 text-sm text-center">
+                    {item.qty_in_stock > item.reorder_level ? (
+                      <span className="px-2 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-700">In Stock</span>
+                    ) : (
+                      <span className="px-2 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-700">Low Stock</span>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {showSalesReportModal && <BranchSalesReportModal inventory={inventory} onClose={() => setShowSalesReportModal(false)} onSubmit={handleSalesReportSubmit} />}
+      {showAddStockModal && <AddStockModal inventory={inventory} onClose={() => setShowAddStockModal(false)} onAddStock={handleAddNewStock} />}
+      {showItemForm && <ItemFormModal item={null} onClose={() => setShowItemForm(false)} onSave={(id, data) => handleSaveNewItem(data)} />}
+    </div>
+  );
+}
+
+function BranchSalesReportModal({ inventory, onClose, onSubmit }) {
+  const [branch, setBranch] = useState('Manila Branch');
+  const [soldItems, setSoldItems] = useState([]);
+  const showStatus = React.useContext(StatusContext);
+  const branches = ['Manila Branch', 'Cebu Branch', 'Davao Branch'];
+
+  const handleQuantityChange = (itemId, quantity) => {
+    const numQuantity = parseInt(quantity, 10) || 0;
+    const inventoryItem = inventory.find(i => i.id === itemId);
+
+    if (numQuantity > inventoryItem.qty_in_stock) { // Assuming sales report is in units, not kg for now.
+      showStatus('error', `Cannot sell more than available stock (${inventoryItem.qty_in_stock}).`);
+      return;
+    }
+
+    const existingIndex = soldItems.findIndex(item => item.id === itemId);
+    if (existingIndex > -1) {
+      if (numQuantity > 0) {
+        const updatedSoldItems = [...soldItems];
+        updatedSoldItems[existingIndex].quantity = numQuantity;
+        setSoldItems(updatedSoldItems);
+      } else {
+        setSoldItems(soldItems.filter(item => item.id !== itemId));
+      }
+    } else if (numQuantity > 0) {
+      setSoldItems([...soldItems, { id: itemId, name: inventoryItem.name, quantity: numQuantity }]);
+    }
+  };
+
+  const handleSubmit = () => {
+    if (!branch) {
+      showStatus('error', 'Please select a branch.');
+      return;
+    }
+    if (soldItems.length === 0) {
+      showStatus('error', 'Please enter quantities for at least one sold item.');
+      return;
+    }
+    onSubmit({ branch, items: soldItems });
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col">
+        <div className="flex items-center justify-between p-6 border-b dark:border-gray-700">
+          <h3 className="text-xl font-bold text-gray-800 dark:text-gray-200">Submit Branch Sales Report</h3>
+          <button onClick={onClose} className="p-1 rounded-full text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700"><X className="w-5 h-5" /></button>
+        </div>
+        <div className="p-6 flex-1 overflow-y-auto">
+          <div className="mb-6">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Select Branch</label>
+            <select value={branch} onChange={e => setBranch(e.target.value)} className="w-full p-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600">
+              {branches.map(b => <option key={b} value={b}>{b}</option>)}
+            </select>
+          </div>
+          <h4 className="font-semibold mb-2 dark:text-gray-200">Enter Quantities Sold</h4>
+          <div className="space-y-3">
+            {inventory.map(item => (
+              <div key={item.id} className="grid grid-cols-2 items-center gap-4">
+                <label htmlFor={`item-${item.id}`} className="text-sm font-medium dark:text-gray-300">{item.name} <span className="text-xs text-gray-500">(Stock: {item.qty_in_stock.toFixed(2)} kg)</span></label>
+                <input
+                  id={`item-${item.id}`}
+                  type="number"
+                  min="0" step="0.01"
+                  max={item.qty_in_stock}
+                  placeholder="0"
+                  onChange={e => handleQuantityChange(item.id, e.target.value)}
+                  className="w-full p-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600"
+                />
+              </div>
+            ))}
+          </div>
+        </div>
+        <div className="p-4 bg-gray-50 dark:bg-gray-900/50 border-t dark:border-gray-700 flex justify-end gap-3">
+          <button type="button" onClick={onClose} className="px-4 py-2 border rounded-lg dark:border-gray-600">Cancel</button>
+          <button type="button" onClick={handleSubmit} className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700">Submit Report</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function AddStockModal({ inventory, onClose, onAddStock }) {
+  const [selectedItemId, setSelectedItemId] = useState(inventory[0]?.id || '');
+  const [quantity, setQuantity] = useState('');
+  const showStatus = React.useContext(StatusContext);
+
+  const handleSubmit = () => {
+    const numQuantity = parseInt(quantity, 10);
+    if (!selectedItemId || !numQuantity || numQuantity <= 0) {
+      showStatus('error', 'Please select an item and enter a valid positive quantity.');
+      return;
+    }
+    onAddStock(parseInt(selectedItemId), numQuantity);
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md">
+        <div className="flex items-center justify-between p-6 border-b dark:border-gray-700">
+          <h3 className="text-xl font-bold text-gray-800 dark:text-gray-200">Add Stock to Inventory</h3>
+          <button onClick={onClose} className="p-1 rounded-full text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700"><X className="w-5 h-5" /></button>
+        </div>
+        <div className="p-6 space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Item</label>
+            <select value={selectedItemId} onChange={e => setSelectedItemId(e.target.value)} className="w-full p-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600">
+              <option value="" disabled>Select an item</option>
+              {inventory.map(item => (
+                <option key={item.id} value={item.id}>{item.name}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Quantity to Add (kg)</label>
+            <input
+              type="number"
+              min="1"
+              step="0.01"
+              value={quantity}
+              onChange={e => setQuantity(e.target.value)}
+              placeholder="Enter quantity in kg"
+              className="w-full p-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600"
+            />
+          </div>
+        </div>
+        <div className="p-4 bg-gray-50 dark:bg-gray-900/50 border-t dark:border-gray-700 flex justify-end gap-3">
+          <button type="button" onClick={onClose} className="px-4 py-2 border rounded-lg dark:border-gray-600">Cancel</button>
+          <button type="button" onClick={handleSubmit} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Add Stock</button>
         </div>
       </div>
     </div>
