@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { BarChart3, Package, DollarSign, TrendingUp, AlertTriangle, Users, LogOut, Menu, X, Plus, Edit, Trash2, Search, Calendar, ShoppingCart, Minus, FileText, CheckCircle, XCircle, Loader2, Bell, RefreshCw, ChevronsUpDown, ChevronUp, ChevronDown, ArrowUp, ArrowDown, RotateCw, User, Lock, Mail, MessageSquare, Send, Building, Target, Linkedin, Github, Instagram, Facebook, KeyRound, Printer, Download, Sun, Moon, Activity, ArrowLeft, Eye, EyeOff, Truck, Feather } from 'lucide-react';
+import { BarChart3, Package, DollarSign, TrendingUp, AlertTriangle, Users, LogOut, Menu, X, Plus, Edit, Trash2, Search, Calendar, ShoppingCart, Minus, FileText, CheckCircle, XCircle, Loader2, Bell, RefreshCw, ChevronsUpDown, ChevronUp, ChevronDown, ArrowUp, ArrowDown, RotateCw, User, Lock, Mail, MessageSquare, Send, Building, Target, Linkedin, Github, Instagram, Facebook, KeyRound, Printer, Download, Sun, Moon, Activity, ArrowLeft, Eye, EyeOff } from 'lucide-react';
 import api from './api';
 
 const StatusContext = React.createContext();
@@ -720,36 +720,6 @@ function AboutPage({ onNavigate }) {
   );
 }
 
-function SidebarDropdown({ isOpen, item, currentPage, onNavigate }) {
-  const [isDropdownOpen, setDropdownOpen] = useState(false);
-  const { icon: Icon, label, children } = item;
-
-  return (
-    <div>
-      <button
-        onClick={() => setDropdownOpen(!isDropdownOpen)}
-        className={`w-full flex items-center justify-between gap-3 py-3 rounded-lg transition ${isOpen ? 'px-4' : 'justify-center'} text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700`}
-        title={!isOpen ? label : ''}
-      >
-        <div className="flex items-center gap-3">
-          <Icon className="w-5 h-5 flex-shrink-0" />
-          <span className={`whitespace-nowrap transition-opacity duration-200 ${isOpen ? 'opacity-100' : 'opacity-0 w-0'}`}>{label}</span>
-        </div>
-        {isOpen && (isDropdownOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />)}
-      </button>
-      {isOpen && isDropdownOpen && (
-        <div className="pl-8 pr-4 py-1 space-y-1">
-          {children.map(child => (
-            <button key={child.id} onClick={() => onNavigate(child.id)} className={`w-full text-left px-4 py-2 rounded-md text-sm ${currentPage === child.id ? 'bg-indigo-50 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-300 font-semibold' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'}`}>
-              {child.label}
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
 function Sidebar({ isOpen, onToggle, currentPage, onNavigate, onLogout }) {
   const navItems = [
     { id: 'dashboard', label: 'Dashboard', icon: BarChart3 },
@@ -757,22 +727,7 @@ function Sidebar({ isOpen, onToggle, currentPage, onNavigate, onLogout }) {
     { id: 'sales', label: 'Sales', icon: DollarSign },
     { id: 'analytics', label: 'Analytics', icon: TrendingUp },
     { id: 'audits', label: 'Audits', icon: Users },
-    { id: 'expenses', label: 'Expenses', icon: AlertTriangle },
-    { 
-      id: 'freezer-van', label: 'Freezer Van', icon: Truck, children: [
-        { id: 'fv-dashboard', label: 'Dashboard' },
-        { id: 'fv-deliveries', label: 'Deliveries' },
-        { id: 'fv-branch', label: 'Branch' },
-        { id: 'fv-inventory', label: 'Inventory' },
-      ]
-    },
-    {
-      id: 'live-chicken', label: 'Live Chicken', icon: Feather, children: [
-        { id: 'lc-dashboard', label: 'Dashboard' },
-        { id: 'lc-inventory', label: 'Inventory' },
-        { id: 'lc-distribution', label: 'Chicken Distribution' },
-      ]
-    }
+    { id: 'expenses', label: 'Expenses', icon: AlertTriangle }
   ];
 
   return (
@@ -789,29 +744,25 @@ function Sidebar({ isOpen, onToggle, currentPage, onNavigate, onLogout }) {
       
       <nav className="flex-1 p-4 space-y-1">
         {navItems.map(item => {
-          if (item.children) {
-            return <SidebarDropdown key={item.id} isOpen={isOpen} item={item} currentPage={currentPage} onNavigate={onNavigate} />;
-          } else {
-            const Icon = item.icon;
-            const isActive = currentPage === item.id;
-            return (
-              <button
-                key={item.id}
-                onClick={() => onNavigate(item.id)}
-                className={`w-full flex items-center gap-3 py-3 rounded-lg transition ${isOpen ? 'px-4' : 'justify-center'} ${
-                  isActive
-                    ? 'bg-indigo-50 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-300 font-semibold'
-                    : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
-                }`}
-                title={!isOpen ? item.label : ''}
-              >
-                <Icon className="w-5 h-5 flex-shrink-0" />
-                <span className={`whitespace-nowrap transition-opacity duration-200 ${isOpen ? 'opacity-100' : 'opacity-0 w-0'}`}>
-                  {item.label}
-                </span>
-              </button>
-            );
-          }
+          const Icon = item.icon;
+          const isActive = currentPage === item.id;
+          return (
+            <button
+              key={item.id}
+              onClick={() => onNavigate(item.id)}
+              className={`w-full flex items-center gap-3 py-3 rounded-lg transition ${isOpen ? 'px-4' : 'justify-center'} ${
+                isActive
+                  ? 'bg-indigo-50 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-300 font-semibold'
+                  : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
+              }`}
+              title={!isOpen ? item.label : ''}
+            >
+              <Icon className="w-5 h-5 flex-shrink-0" />
+              <span className={`whitespace-nowrap transition-opacity duration-200 ${isOpen ? 'opacity-100' : 'opacity-0 w-0'}`}>
+                {item.label}
+              </span>
+            </button>
+          );
         })}
       </nav>
       
