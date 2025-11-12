@@ -1,6 +1,9 @@
+"use client";
+
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { BarChart3, Package, DollarSign, TrendingUp, AlertTriangle, Users, LogOut, Menu, X, Plus, Edit, Trash2, Search, Calendar, ShoppingCart, Minus, FileText, CheckCircle, XCircle, Loader2, Bell, RefreshCw, ChevronsUpDown, ChevronUp, ChevronDown, ArrowUp, ArrowDown, RotateCw, User, Lock, Mail, MessageSquare, Send, Building, Target, Linkedin, Github, Instagram, Facebook, KeyRound, Printer, Download, Sun, Moon, Activity, ArrowLeft, Eye, EyeOff, Truck, Feather, MapPin, ClipboardList, FileInput } from 'lucide-react';
 import api from './api';
+import ItemFormModal from './components/ItemFormModal';
 
 const StatusContext = React.createContext();
 
@@ -233,6 +236,29 @@ function PublicNav({ activePage, onNavigate }) {
         </div>
       )}
     </>
+  );
+}
+
+function InputField({ label, name, type = 'text', value, onChange, icon: Icon, required = false, disabled = false }) {
+  return (
+    <div>
+      <label htmlFor={name} className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+        {label}
+      </label>
+      <div className="relative">
+        {Icon && <Icon className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />}
+        <input
+          type={type}
+          id={name}
+          name={name}
+          value={value}
+          onChange={onChange}
+          required={required}
+          disabled={disabled}
+          className={`w-full border rounded-lg py-2 transition-colors ${Icon ? 'pl-10' : 'pl-3'} pr-3 dark:bg-gray-800 dark:border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:border-transparent disabled:bg-gray-100 dark:disabled:bg-gray-700`}
+        />
+      </div>
+    </div>
   );
 }
 
@@ -3233,6 +3259,82 @@ function ReceiptModal({ sale, onClose }) {
   );
 }
 
+function FreezerVanItemFormModal({ item, onClose, onSave }) {
+  const [formData, setFormData] = useState({
+    date: item?.date ? new Date(item.date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+    supplier: item?.supplier || '',
+    item_name: item?.item_name || '',
+    kilos: item?.kilos || 0,
+    price: item?.price || 0,
+    expenses: item?.expenses || 0,
+    profit: item?.profit || 0,
+    status: item?.status || 'In Stock',
+  });
+
+  const amount = parseFloat(formData.kilos) * parseFloat(formData.price);
+  const totalAmount = amount + parseFloat(formData.expenses);
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    const kilos = parseFloat(formData.kilos) || 0;
+    const price = parseFloat(formData.price) || 0;
+    const expenses = parseFloat(formData.expenses) || 0;
+    const profit = parseFloat(formData.profit) || 0;
+    const amount = kilos * price;
+    const totalAmount = amount + expenses;
+
+    const submissionData = {
+      ...formData,
+      kilos,
+      price,
+      expenses,
+      profit,
+      amount,
+      total_amount: totalAmount,
+    };
+    onSave(item?.id, submissionData);
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full animate-in fade-in-0 zoom-in-95">
+        <form onSubmit={handleSubmit}>
+          <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+            <h3 className="text-xl font-bold text-gray-800 dark:text-gray-200">{item ? 'Edit Item' : 'Add New Item'}</h3>
+          </div>
+          <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+            <InputField label="Date" name="date" type="date" value={formData.date} onChange={handleChange} icon={Calendar} />
+            <InputField label="Supplier" name="supplier" value={formData.supplier} onChange={handleChange} icon={Building} />
+            <InputField label="Particulars (Item Name)" name="item_name" value={formData.item_name} onChange={handleChange} icon={Package} />
+            <InputField label="Kilos" name="kilos" type="number" value={formData.kilos} onChange={handleChange} icon={Feather} />
+            <InputField label="Price" name="price" type="number" value={formData.price} onChange={handleChange} icon={DollarSign} />
+            <InputField label="Amount" name="amount" type="number" value={amount.toFixed(2)} icon={DollarSign} disabled />
+            <InputField label="Travel & Others (Expenses)" name="expenses" type="number" value={formData.expenses} onChange={handleChange} icon={Truck} />
+            <InputField label="Total Amount" name="total_amount" type="number" value={totalAmount.toFixed(2)} icon={DollarSign} disabled />
+            <InputField label="Profit" name="profit" type="number" value={formData.profit} onChange={handleChange} icon={TrendingUp} />
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Status</label>
+              <select name="status" value={formData.status} onChange={handleChange} className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 focus:ring-2 focus:ring-indigo-500">
+                <option>In Stock</option>
+                <option>Sold</option>
+              </select>
+            </div>
+          </div>
+          <div className="bg-gray-50 dark:bg-gray-700/50 px-6 py-4 flex justify-end gap-3 rounded-b-lg">
+            <button type="button" onClick={onClose} className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 font-semibold text-gray-700 dark:text-gray-200 transition-colors">Cancel</button>
+            <button type="submit" className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-semibold transition-colors">{item ? 'Save Changes' : 'Add Item'}</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
 function FreezerVanDeliveries({ user, refreshKey }) {
   const [deliveries, setDeliveries] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -3538,138 +3640,6 @@ function NewDeliveryModal({ branches, onClose, onSave }) {
   );
 }
 
-function FreezerVanInventory({ user, refreshKey }) {
-  const [inventory, setInventory] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [showSalesReportModal, setShowSalesReportModal] = useState(false);
-  const [showAddStockModal, setShowAddStockModal] = useState(false);
-  const [showItemForm, setShowItemForm] = useState(false);
-  const showStatus = React.useContext(StatusContext);
-
-  const mockFvInventory = [
-    { id: 101, name: 'Frozen Chicken Wings', qty_in_stock: 150, purchase_price: 220.00, reorder_level: 50 },
-    { id: 102, name: 'Frozen Ground Beef', qty_in_stock: 120, purchase_price: 350.00, reorder_level: 40 },
-    { id: 103, name: 'Frozen Pork Chops', qty_in_stock: 230, purchase_price: 280.00, reorder_level: 60 },
-    { id: 104, name: 'Frozen Fish Fillet', qty_in_stock: 30, purchase_price: 180.00, reorder_level: 40 },
-  ];
-
-  useEffect(() => {
-    setLoading(true);
-    setTimeout(() => {
-      setInventory(mockFvInventory);
-      setLoading(false);
-    }, 1000);
-  }, [refreshKey]);
-
-  const handleSalesReportSubmit = (salesReport) => {
-    setInventory(currentInventory => {
-      const updatedInventory = [...currentInventory];
-      salesReport.items.forEach(soldItem => {
-        const itemIndex = updatedInventory.findIndex(invItem => invItem.id === soldItem.id);
-        if (itemIndex !== -1) {
-          updatedInventory[itemIndex].qty_in_stock -= soldItem.quantity;
-        }
-      });
-      return updatedInventory;
-    });
-    showStatus('success', `Sales from ${salesReport.branch} submitted. Inventory updated.`);
-    setShowSalesReportModal(false);
-  };
-
-  const handleAddNewStock = (itemId, quantity) => {
-    setInventory(currentInventory => {
-      const updatedInventory = [...currentInventory];
-      const itemIndex = updatedInventory.findIndex(invItem => invItem.id === itemId);
-      if (itemIndex !== -1) {
-        updatedInventory[itemIndex].qty_in_stock += quantity;
-      }
-      return updatedInventory;
-    });
-    const item = inventory.find(i => i.id === itemId);
-    showStatus('success', `Added ${quantity} to ${item.name}. Stock updated.`);
-    setShowAddStockModal(false);
-  };
-
-  const handleSaveNewItem = (newItemData) => {
-    const newItem = { ...newItemData, id: inventory.length + 105, purchase_price: newItemData.purchase_price || 0 };
-    setInventory(prev => [newItem, ...prev]);
-    showStatus('success', `Successfully added new item: ${newItem.name}`);
-    setShowItemForm(false);
-  };
-
-  const totalStockValue = inventory.reduce((sum, item) => sum + (item.qty_in_stock * item.purchase_price), 0);
-  const lowStockCount = inventory.filter(item => item.qty_in_stock <= item.reorder_level).length;
-
-  return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-200">Freezer Van Inventory</h2>
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => setShowItemForm(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition dark:bg-indigo-500 dark:hover:bg-indigo-600">
-            <Plus className="w-5 h-5" />
-            Add Item
-          </button>
-          <button
-            onClick={() => setShowAddStockModal(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition dark:bg-blue-500 dark:hover:bg-blue-600">
-            <Plus className="w-5 h-5" />
-            Add Stock
-          </button>
-          <button onClick={() => setShowSalesReportModal(true)} className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition dark:bg-purple-500 dark:hover:bg-purple-600">
-            <FileInput className="w-5 h-5" />
-            Submit Branch Sales
-          </button>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-white dark:bg-gray-800 p-5 rounded-lg shadow"><div className="text-sm text-gray-500 dark:text-gray-400">Total Stock Value</div><div className="text-2xl font-bold dark:text-white">PHP {totalStockValue.toLocaleString('en-US', { minimumFractionDigits: 2 })}</div></div>
-        <div className="bg-white dark:bg-gray-800 p-5 rounded-lg shadow"><div className="text-sm text-gray-500 dark:text-gray-400">Total Item Types</div><div className="text-2xl font-bold dark:text-white">{inventory.length}</div></div>
-        <div className="bg-white dark:bg-gray-800 p-5 rounded-lg shadow"><div className="text-sm text-gray-500 dark:text-gray-400">Items Low on Stock</div><div className={`text-2xl font-bold ${lowStockCount > 0 ? 'text-red-500' : 'dark:text-white'}`}>{lowStockCount}</div></div>
-      </div>
-
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gray-50 dark:bg-gray-700/50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase">Item Name</th>
-                <th className="px-6 py-3 text-right text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase">Current Stock (kg)</th>
-                <th className="px-6 py-3 text-right text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase">Reorder Level (kg)</th>
-                <th className="px-6 py-3 text-center text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase">Status</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-              {loading ? (
-                <tr><td colSpan="4" className="text-center py-8 text-gray-500">Loading inventory...</td></tr>
-              ) : inventory.map(item => (
-                <tr key={item.id}>
-                  <td className="px-6 py-4 text-sm font-medium dark:text-gray-200">{item.name}</td>
-                  <td className="px-6 py-4 text-sm font-semibold dark:text-gray-300 text-right">{item.qty_in_stock.toFixed(2)}</td>
-                  <td className="px-6 py-4 text-sm dark:text-gray-300 text-right">{item.reorder_level.toFixed(2)}</td>
-                  <td className="px-6 py-4 text-sm text-center">
-                    {item.qty_in_stock > item.reorder_level ? (
-                      <span className="px-2 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-700">In Stock</span>
-                    ) : (
-                      <span className="px-2 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-700">Low Stock</span>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {showSalesReportModal && <BranchSalesReportModal inventory={inventory} onClose={() => setShowSalesReportModal(false)} onSubmit={handleSalesReportSubmit} />}
-      {showAddStockModal && <AddStockModal inventory={inventory} onClose={() => setShowAddStockModal(false)} onAddStock={handleAddNewStock} />}
-      {showItemForm && <ItemFormModal item={null} onClose={() => setShowItemForm(false)} onSave={(id, data) => handleSaveNewItem(data)} />}
-    </div>
-  );
-}
-
 function BranchSalesReportModal({ inventory, onClose, onSubmit }) {
   const [branch, setBranch] = useState('Manila Branch');
   const [soldItems, setSoldItems] = useState([]);
@@ -3752,255 +3722,159 @@ function BranchSalesReportModal({ inventory, onClose, onSubmit }) {
   );
 }
 
-function AddStockModal({ inventory, onClose, onAddStock }) {
-  const [selectedItemId, setSelectedItemId] = useState(inventory[0]?.id || '');
-  const [quantity, setQuantity] = useState('');
+function FreezerVanInventory({ user, refreshKey }) {
+  const [inventory, setInventory] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [showFreezerVanItemForm, setShowFreezerVanItemForm] = useState(false);
+  const [editingFvItem, setEditingFvItem] = useState(null);
+  const [showSalesReportModal, setShowSalesReportModal] = useState(false);
   const showStatus = React.useContext(StatusContext);
 
-  const handleSubmit = () => {
-    const numQuantity = parseInt(quantity, 10);
-    if (!selectedItemId || !numQuantity || numQuantity <= 0) {
-      showStatus('error', 'Please select an item and enter a valid positive quantity.');
-      return;
+  useEffect(() => {
+    setLoading(true);
+    setTimeout(() => {
+      const mockData = [
+          { id: 1, date: '2024-07-28', supplier: 'Supplier A', item_name: 'Item 1', kilos: 100, price: 150, amount: 15000, expenses: 500, total_amount: 15500, profit: 2000, status: 'In Stock' },
+          { id: 2, date: '2024-07-27', supplier: 'Supplier B', item_name: 'Item 2', kilos: 200, price: 120, amount: 24000, expenses: 700, total_amount: 24700, profit: 3000, status: 'In Stock' },
+          { id: 3, date: '2024-07-29', supplier: 'Supplier A', item_name: 'Item 1', kilos: 50, price: 155, amount: 7750, expenses: 200, total_amount: 7950, profit: 1000, status: 'In Stock' },
+      ];
+      setInventory(mockData);
+      setLoading(false);
+    }, 1000);
+  }, [refreshKey]);
+
+  const handleFvItemSave = (itemId, formData) => {
+    if (itemId) {
+      setInventory(prev => prev.map(item => item.id === itemId ? {...item, ...formData, id: itemId} : item));
+      showStatus('success', 'Item updated successfully!');
+    } else {
+      const newItem = { ...formData, id: Date.now() };
+      setInventory(prev => [newItem, ...prev]);
+      showStatus('success', 'New item added to Freezer Van inventory!');
     }
-    onAddStock(parseInt(selectedItemId), numQuantity);
+    setShowFreezerVanItemForm(false);
+    setEditingFvItem(null);
   };
+
+  const handleSalesReportSubmit = (salesReport) => {
+    let updatedInventory = JSON.parse(JSON.stringify(inventory)); // Deep copy
+    salesReport.items.forEach(soldItem => {
+        let quantityToDeduct = soldItem.quantity;
+        const stockEntries = updatedInventory
+            .filter(invItem => invItem.item_name === soldItem.name && invItem.status === 'In Stock')
+            .sort((a, b) => new Date(a.date) - new Date(b.date));
+
+        for (const entry of stockEntries) {
+            if (quantityToDeduct <= 0) break;
+
+            if (entry.kilos >= quantityToDeduct) {
+                entry.kilos -= quantityToDeduct;
+                quantityToDeduct = 0;
+                if (entry.kilos === 0) {
+                    entry.status = 'Sold';
+                }
+            } else {
+                quantityToDeduct -= entry.kilos;
+                entry.kilos = 0;
+                entry.status = 'Sold';
+            }
+        }
+    });
+    setInventory(updatedInventory);
+    showStatus('success', `Sales from ${salesReport.branch} submitted. Inventory updated.`);
+    setShowSalesReportModal(false);
+  };
+
+  const aggregatedInventory = inventory.reduce((acc, item) => {
+    if (item.status === 'In Stock') {
+        const existing = acc.find(i => i.name === item.item_name);
+        if (existing) {
+            existing.qty_in_stock += item.kilos;
+        } else {
+            acc.push({
+                name: item.item_name,
+                qty_in_stock: item.kilos
+            });
+        }
+    }
+    return acc;
+  }, []);
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md">
-        <div className="flex items-center justify-between p-6 border-b dark:border-gray-700">
-          <h3 className="text-xl font-bold text-gray-800 dark:text-gray-200">Add Stock to Inventory</h3>
-          <button onClick={onClose} className="p-1 rounded-full text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700"><X className="w-5 h-5" /></button>
-        </div>
-        <div className="p-6 space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Item</label>
-            <select value={selectedItemId} onChange={e => setSelectedItemId(e.target.value)} className="w-full p-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600">
-              <option value="" disabled>Select an item</option>
-              {inventory.map(item => (
-                <option key={item.id} value={item.id}>{item.name}</option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Quantity to Add (kg)</label>
-            <input
-              type="number"
-              min="1"
-              step="0.01"
-              value={quantity}
-              onChange={e => setQuantity(e.target.value)}
-              placeholder="Enter quantity in kg"
-              className="w-full p-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600"
-            />
-          </div>
-        </div>
-        <div className="p-4 bg-gray-50 dark:bg-gray-900/50 border-t dark:border-gray-700 flex justify-end gap-3">
-          <button type="button" onClick={onClose} className="px-4 py-2 border rounded-lg dark:border-gray-600">Cancel</button>
-          <button type="button" onClick={handleSubmit} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Add Stock</button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-export default App;
-
-function ItemFormModal({ item, onClose, onSave }) {
-  const [isSaving, setIsSaving] = useState(false);
-  const [formErrors, setFormErrors] = useState({});
-  const [form, setForm] = useState({
-    item_number: item?.item_number || '',
-    name: item?.name || '',
-    category: item?.category || '',
-    qty_in_stock: item?.qty_in_stock || 0,
-    reorder_level: item?.reorder_level || 0,
-    purchase_price: item?.purchase_price || '',
-    selling_price: item?.selling_price || ''
-  });
-
-  const validate = () => {
-    const errors = {};
-    if (!form.item_number.trim()) errors.item_number = 'Item Number is required.';
-    if (!form.name.trim()) errors.name = 'Name is required.';
-    if (!form.selling_price) errors.selling_price = 'Selling Price is required.';
-    else if (parseFloat(form.selling_price) <= 0) errors.selling_price = 'Selling Price must be positive.';
-
-    if (form.purchase_price && parseFloat(form.purchase_price) < 0) {
-      errors.purchase_price = 'Purchase Price cannot be negative.';
-    }
-    if (parseInt(form.qty_in_stock, 10) < 0) {
-      errors.qty_in_stock = 'Quantity cannot be negative.';
-    }
-    if (parseInt(form.reorder_level, 10) < 0) {
-      errors.reorder_level = 'Reorder Level cannot be negative.';
-    }
-
-    setFormErrors(errors);
-    return Object.keys(errors).length === 0;
-  };
-
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setForm(prev => ({ ...prev, [name]: value }));
-    if (formErrors[name]) {
-      setFormErrors(prev => ({ ...prev, [name]: null }));
-    }
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!validate()) {
-      return;
-    }
-    setIsSaving(true);
-    try {
-      await onSave(item ? item.item_id : null, { ...form, purchase_price: form.purchase_price || 0 });
-      // The onClose will be called by the parent, unmounting this component.
-    } catch (error) {
-      // If there's an error, the modal stays open, so we stop the saving indicator.
-      setIsSaving(false);
-    }
-  };
-
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] flex flex-col animate-in fade-in-0 zoom-in-95">
-        <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
-          <h3 className="text-xl font-bold text-gray-800 dark:text-gray-200">{item ? 'Edit Item' : 'Add New Item'}</h3>
-          <button onClick={onClose} className="p-1 rounded-full text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-600 transition-colors">
-            <X className="w-5 h-5" />
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-200">Freezer Van Inventory</h2>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => { setEditingFvItem(null); setShowFreezerVanItemForm(true); }}
+            className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition dark:bg-indigo-500 dark:hover:bg-indigo-600">
+            <Plus className="w-5 h-5" />
+            Add Item
+          </button>
+          <button
+            onClick={() => setShowSalesReportModal(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition dark:bg-purple-500 dark:hover:bg-purple-600">
+            <FileInput className="w-5 h-5" />
+            Submit Sales Report
           </button>
         </div>
-
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Item Number</label>
-              <input
-                name="item_number"
-                type="text"
-                value={form.item_number}
-                onChange={handleChange}
-                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors ${formErrors.item_number ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'} bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-200`}
-                required
-              />
-              {formErrors.item_number && (
-                <p className="mt-1 text-xs text-red-600">{formErrors.item_number}</p>
-              )}
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Name</label>
-              <input
-                name="name"
-                type="text"
-                value={form.name}
-                onChange={handleChange}
-                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors ${formErrors.name ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'} bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-200`}
-                required
-              />
-              {formErrors.name && (
-                <p className="mt-1 text-xs text-red-600">{formErrors.name}</p>
-              )}
-            </div>
-          </div>
-
-          <div className="grid grid-cols-3 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Category</label>
-              <input
-                name="category"
-                type="text"
-                value={form.category}
-                onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-200"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Quantity</label>
-              <input
-                name="qty_in_stock"
-                type="number"
-                value={form.qty_in_stock}
-                onChange={handleChange}
-                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors ${formErrors.qty_in_stock ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'} bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-200`}
-              />
-              {formErrors.qty_in_stock && (
-                <p className="mt-1 text-xs text-red-600">{formErrors.qty_in_stock}</p>
-              )}
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Reorder Level</label>
-              <input
-                name="reorder_level"
-                type="number"
-                value={form.reorder_level}
-                onChange={handleChange}
-                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors ${formErrors.reorder_level ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'} bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-200`}
-              />
-              {formErrors.reorder_level && (
-                <p className="mt-1 text-xs text-red-600">{formErrors.reorder_level}</p>
-              )}
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Purchase Price</label>
-              <input
-                name="purchase_price"
-                type="number"
-                step="0.01"
-                value={form.purchase_price}
-                onChange={handleChange}
-                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors ${formErrors.purchase_price ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'} bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-200`}
-              />
-              {formErrors.purchase_price && (
-                <p className="mt-1 text-xs text-red-600">{formErrors.purchase_price}</p>
-              )}
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Selling Price</label>
-              <input
-                name="selling_price"
-                type="number"
-                step="0.01"
-                value={form.selling_price}
-                onChange={handleChange}
-                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors ${formErrors.selling_price ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'} bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-200`}
-              />
-              {formErrors.selling_price && (
-                <p className="mt-1 text-xs text-red-600">{formErrors.selling_price}</p>
-              )}
-            </div>
-          </div>
-
-          <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
-             <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 font-semibold text-gray-700 dark:text-gray-200 transition-colors"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={isSaving}
-              className="w-28 flex justify-center px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-semibold transition-colors disabled:opacity-50 dark:bg-indigo-500 dark:hover:bg-indigo-600"
-            >
-              {isSaving ? (
-                <Loader2 className="h-5 w-5 animate-spin" />
-              ) : (
-                'Save Item'
-              )}
-            </button>
-          </div>
-        </form>
       </div>
+
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow">
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead className="bg-gray-50 dark:bg-gray-700/50">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase">Date</th>
+                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase">Supplier</th>
+                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase">Particulars</th>
+                <th className="px-6 py-3 text-right text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase">Kilos</th>
+                <th className="px-6 py-3 text-right text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase">Price</th>
+                <th className="px-6 py-3 text-right text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase">Amount</th>
+                <th className="px-6 py-3 text-right text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase">Expenses</th>
+                <th className="px-6 py-3 text-right text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase">Total Amount</th>
+                <th className="px-6 py-3 text-right text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase">Profit</th>
+                <th className="px-6 py-3 text-center text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase">Status</th>
+                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+              {loading ? (
+                <tr><td colSpan="11" className="text-center py-8 text-gray-500">Loading inventory...</td></tr>
+              ) : inventory.map(item => (
+                <tr key={item.id}>
+                  <td className="px-6 py-4 text-sm">{new Date(item.date).toLocaleDateString()}</td>
+                  <td className="px-6 py-4 text-sm">{item.supplier}</td>
+                  <td className="px-6 py-4 text-sm">{item.item_name}</td>
+                  <td className="px-6 py-4 text-sm text-right">{item.kilos}</td>
+                  <td className="px-6 py-4 text-sm text-right">{(parseFloat(item.price) || 0).toFixed(2)}</td>
+                  <td className="px-6 py-4 text-sm text-right">{(parseFloat(item.amount) || 0).toFixed(2)}</td>
+                  <td className="px-6 py-4 text-sm text-right">{(parseFloat(item.expenses) || 0).toFixed(2)}</td>
+                  <td className="px-6 py-4 text-sm text-right">{(parseFloat(item.total_amount) || 0).toFixed(2)}</td>
+                  <td className="px-6 py-4 text-sm text-right">{(parseFloat(item.profit) || 0).toFixed(2)}</td>
+                  <td className="px-6 py-4 text-sm text-center">
+                    <span className={`px-2 py-1 rounded-full text-xs font-semibold ${item.status === 'Sold' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>
+                      {item.status}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 text-sm">
+                    <button onClick={() => { setEditingFvItem(item); setShowFreezerVanItemForm(true); }} className="p-1 text-indigo-600 hover:bg-indigo-50 rounded"><Edit className="w-4 h-4" /></button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {showFreezerVanItemForm && <FreezerVanItemFormModal item={editingFvItem} onClose={() => { setShowFreezerVanItemForm(false); setEditingFvItem(null); }} onSave={handleFvItemSave} />}
+      {showSalesReportModal && <BranchSalesReportModal inventory={aggregatedInventory} onClose={() => setShowSalesReportModal(false)} onSubmit={handleSalesReportSubmit} />}
     </div>
   );
 }
+
+
+
 
 function Sales({ setNotifications, user, refreshKey }) {
   const [sales, setSales] = useState([]);
@@ -4392,3 +4266,5 @@ function NewSaleModal({ onClose, onSaleCreated }) {
     </div>
   );
 }
+
+export default App;
