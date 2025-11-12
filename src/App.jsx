@@ -3344,11 +3344,11 @@ function FreezerVanDeliveries({ user, refreshKey }) {
   const showStatus = React.useContext(StatusContext);
 
   // Mock data, replace with API calls
-  const branches = ['All', 'Manila Branch', 'Cebu Branch', 'Davao Branch'];
+  const branches = ['All', 'San Roque (Main)', 'Rawis', 'Mondragon', 'Catarman', 'Catubig', 'San Jose'];
   const mockDeliveries = [
-    { id: 1, deliveryNumber: 'D-2025-001', branch: 'Manila Branch', date: '2025-11-15', driver: 'John Doe', status: 'Delivered', items: [{ name: 'Frozen Chicken', quantity: 50 }] },
-    { id: 2, deliveryNumber: 'D-2025-002', branch: 'Cebu Branch', date: '2025-11-16', driver: 'Jane Smith', status: 'In Transit', items: [{ name: 'Frozen Beef', quantity: 30 }] },
-    { id: 3, deliveryNumber: 'D-2025-003', branch: 'Manila Branch', date: '2025-11-17', driver: 'Peter Jones', status: 'Pending', items: [{ name: 'Frozen Pork', quantity: 70 }] },
+    { id: 1, deliveryNumber: 'D-2025-001', branch: 'San Roque (Main)', date: '2025-11-15', driver: 'John Doe', status: 'Delivered', items: [{ name: 'Frozen Chicken', quantity: 50 }] },
+    { id: 2, deliveryNumber: 'D-2025-002', branch: 'Rawis', date: '2025-11-16', driver: 'Jane Smith', status: 'In Transit', items: [{ name: 'Frozen Beef', quantity: 30 }] },
+    { id: 3, deliveryNumber: 'D-2025-003', branch: 'Mondragon', date: '2025-11-17', driver: 'Peter Jones', status: 'Pending', items: [{ name: 'Frozen Pork', quantity: 70 }] },
   ];
 
   useEffect(() => {
@@ -3641,10 +3641,10 @@ function NewDeliveryModal({ branches, onClose, onSave }) {
 }
 
 function BranchSalesReportModal({ inventory, onClose, onSubmit }) {
-  const [branch, setBranch] = useState('Manila Branch');
+  const [branch, setBranch] = useState('San Roque (Main)');
   const [soldItems, setSoldItems] = useState([]);
   const showStatus = React.useContext(StatusContext);
-  const branches = ['Manila Branch', 'Cebu Branch', 'Davao Branch'];
+  const branches = ["San Roque (Main)", "Rawis", "Mondragon", "Catarman", "Catubig", "San Jose"];
 
   const handleQuantityChange = (itemId, quantity) => {
     const numQuantity = parseInt(quantity, 10) || 0;
